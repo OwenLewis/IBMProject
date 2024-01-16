@@ -17,7 +17,7 @@ include("EulGrid.jl")
 
 
 # # EulGrid.jl
-# export PeriodicGrid
+export PeriodicGrid
 #        HeatParam,
 #        AdvDiffParam,
 #        DarcyParam,
