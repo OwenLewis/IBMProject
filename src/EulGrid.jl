@@ -2,7 +2,7 @@
 
 abstract type AbstractGrid end
 abstract type AbstractGridFunction end
-abstract type DifferentialOperator end
+abstract type AbstractDifferentialOperator end
 
 #Lets define an Eulerian Grid
 struct PeriodicEulGrid <: AbstractGrid
@@ -20,7 +20,7 @@ struct PeriodicEulGrid <: AbstractGrid
 	H::Float64
 end
 
-#Lets define scalar data on an Eulerian Grid
+#Lets define scalar data on an Eulerian Grid (with a constructor for exception checking)
 mutable struct ScalarGridData <: AbstractGridFunction
 	U::Matrix{Float64}
 	grid::AbstractGrid
@@ -34,14 +34,29 @@ mutable struct ScalarGridData <: AbstractGridFunction
 	end
 end
 
-# #Lets define vector data on the Eulerian Grid
-# mutable struct VectorGridData <: AbstractGridFunction
-# 	U::Matrix{Float64}
-# 	V::Matrix{Float64}
-# 	grid::AbstractGrid
+#Lets define vector data on the Eulerian Grid
+mutable struct VectorGridData <: AbstractGridFunction
+	U::Matrix{Float64}
+	V::Matrix{Float64}
+	grid::AbstractGrid
+
+	function VectorGridData(ux::Matrix{Float64},uy::Matrix{Float64},mygrid::AbstractGrid)
+		if ~(size(ux) == size(mygrid.X))
+			throw(ArgumentError("Size of first input does not match grid size"));
+		elseif ~(size(uy) == size(mygrid.X))
+			throw(ArgumentError("Size of second input does not match grid size"));
+		else
+			return new(ux,uy,mygrid)
+		end 
+	end
+end
+
+# struct Laplacian(mygrid::PeriodicEulGrid)
 # end
 
-#Constructors
+###############################################
+#          Now some grid constructors         #
+###############################################
 
 #No need to specify the redundant information
 function PeriodicEulGrid(Lx::T,Ly::T,Ux::T,Uy::T,Nx::Int,Ny::Int) where T<:Real
@@ -51,7 +66,7 @@ function PeriodicEulGrid(Lx::T,Ly::T,Ux::T,Uy::T,Nx::Int,Ny::Int) where T<:Real
 	dy = H/Ny;
 	X = [(i-1/2)*dx + Lx for i=1:Nx, j = 1:Ny];
 	Y = [(j-1/2)*dy + Ly for i=1:Nx, j = 1:Ny];
-	grid::PeriodicGrid = PeriodicGrid(Lx,Ly,Ux,Uy,Nx,Ny,dx,dy,X,Y,L,H);
+	grid::PeriodicEulGrid = PeriodicEulGrid(Lx,Ly,Ux,Uy,Nx,Ny,dx,dy,X,Y,L,H);
 	return grid
 end
 
@@ -65,7 +80,7 @@ function PeriodicEulGrid(Ux::T,Uy::T,Nx::Int,Ny::Int) where T<:Real
 	dy = H/Ny;
 	X = [(i-1/2)*dx + Lx for i=1:Nx, j = 1:Ny];
 	Y = [(j-1/2)*dy + Ly for i=1:Nx, j = 1:Ny];
-	grid::PeriodicGrid = PeriodicGrid(Lx,Ly,Ux,Uy,Nx,Ny,dx,dy,X,Y,L,H);
+	grid::PeriodicEulGrid = PeriodicEulGrid(Lx,Ly,Ux,Uy,Nx,Ny,dx,dy,X,Y,L,H);
 	return grid
 end
 
@@ -85,21 +100,42 @@ function PeriodicEulGrid(Nx::Int,Ny::Int)
 	return grid
 end
 
+###############################################
+#        Now some grid data constructors      #
+###############################################
+#If no data is specified, initialize with zeros
 function ScalarGridData(mygrid::AbstractGrid)
 	U = zeros(mygrid.Nx,mygrid.Ny);
 	griddata::ScalarGridData = ScalarGridData(U,mygrid);
 	return griddata
 end
 
-# function ScalarGridData(ux::Matrix{T},mygrid::AbstractGrid) where T<:Real
-# 	if ~(size(ux) == size(mygrid.X))
-# 		throw(ArgumentError(ux,"Size of input does not match grid size"));
-# 	else
-# 		griddata::ScalarGridData = ScalarGridData(ux,mygrid);
-# 		return griddata
-# 	end
-# end
+#If data is specified, check size
+function ScalarGridData(ux::Matrix{T},mygrid::AbstractGrid) where T<:Real
+	if ~(size(ux) == size(mygrid.X))
+		throw(ArgumentError(ux,"Size of input does not match grid size"));
+	else
+		griddata::ScalarGridData = ScalarGridData(ux,mygrid);
+		return griddata
+	end
+end
 
+#If no data is specified, initialize with zeros
+function VectorGridData(mygrid::AbstractGrid)
+	U = zeros(mygrid.Nx,mygrid.Ny);
+	V = zeros(mygrid.Nx,mygrid.NY)
+	griddata::ScalarGridData = VectorGridData(U,V,mygrid);
+	return griddata
+end
 
-
-#	dataY = zeros(mygrid.Nx,grid.Ny);
+#If data is specified, check size
+function VectorGridData(ux::Matrix{T},uy::Matrix{T},mygrid::AbstractGrid) where T<:Real
+	if ~(size(ux) == size(mygrid.X))
+		throw(ArgumentError(ux,"Size of input does not match grid size"));
+	elseif ~(size(uy) == size(mygrid.X))
+		throw(ArgumentError("Size of second input does not match grid size"));
+	else
+		griddata::ScalarGridData = VectorGridData(ux,uy,mygrid);
+		return griddata
+	end
+end

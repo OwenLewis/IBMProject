@@ -17,14 +17,14 @@ include("EulGrid.jl")
 
 
 # # EulGrid.jl
-export PeriodicGrid
-#        HeatParam,
-#        AdvDiffParam,
-#        DarcyParam,
-#        FluidParam,
-#        BrinkmanParam,
-#        BrinkmanMPParam,
-#        FluidVarParam
+export PeriodicEulGrid,
+       ScalarGridData,
+       VectorGridData
+       # DarcyParam,
+       # FluidParam,
+       # BrinkmanParam,
+       # BrinkmanMPParam,
+       # FluidVarParam
 
 # # ImmersedBnd.jl
 # export Problem,
