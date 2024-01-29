@@ -160,3 +160,21 @@ function MakePeriodicLaplacian(mygrid::PeriodicEulGrid)
 	Lap = PeriodicDifferentialOperator(mygrid,applyeigs,inteigs);
 	return Lap
 end
+
+
+
+function ApplyOperator(mydata::ScalarGridData,myoperator::AbstractDifferentialOperator,mygrid::AbstractGrid)
+	rhshat = FFTW.fft(mydata.U);
+	newhat = myoperator.applyEigenvalues.*rhshat;
+	new = real(FFTW.ifft(newhat));
+	result = ScalarGridData(new,mygrid);
+	return result
+end
+
+function InvertOperator(mydata::ScalarGridData,myoperator::AbstractDifferentialOperator,mygrid::AbstractGrid)
+	rhshat = FFTW.fft(mydata.U);
+	newhat = myoperator.invertEigenvalues.*rhshat;
+	new = real(FFTW.ifft(newhat));
+	result = ScalarGridData(new,mygrid);
+	return result
+end
