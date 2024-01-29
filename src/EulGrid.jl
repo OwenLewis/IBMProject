@@ -197,7 +197,7 @@ function ApplyOperator(mydata::VectorGridData,myoperator::PeriodicDifferentialOp
 	return result
 end
 
-function InvertOperator(mydata::ScalarGridData,myoperator::PeriodicDifferentialOperator,mygrid::PeriodicEulGrid)
+function InvertOperator(mydata::VectorGridData,myoperator::PeriodicDifferentialOperator,mygrid::PeriodicEulGrid)
 	oldUhat = FFTW.fft(mydata.U);
 	oldVhat = FFTW.fft(mydata.V);
 	newUhat = myoperator.invertEigenvalues.*oldUhat;
