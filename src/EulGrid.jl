@@ -145,7 +145,12 @@ function VectorGridData(ux::Matrix{T},uy::Matrix{T},mygrid::AbstractGrid) where 
 	end
 end
 
+###############################################
+#         Now for some useful functions       #
+###############################################
 
+
+#This is to make a periodic laplacian of type PeriodicDifferentialOperator
 function MakePeriodicLaplacian(mygrid::PeriodicEulGrid)
 	ωx = FFTW.fftfreq(mygrid.Nx,mygrid.Nx/mygrid.L)
 	ωy = FFTW.fftfreq(mygrid.Ny,mygrid.Ny/mygrid.H)
@@ -162,19 +167,43 @@ function MakePeriodicLaplacian(mygrid::PeriodicEulGrid)
 end
 
 
-
-function ApplyOperator(mydata::ScalarGridData,myoperator::AbstractDifferentialOperator,mygrid::AbstractGrid)
-	rhshat = FFTW.fft(mydata.U);
-	newhat = myoperator.applyEigenvalues.*rhshat;
+#This function applys a differential operator to a scalar function on a periodic grid
+function ApplyOperator(mydata::ScalarGridData,myoperator::PeriodicDifferentialOperator,mygrid::PeriodicEulGrid)
+	oldhat = FFTW.fft(mydata.U);
+	newhat = myoperator.applyEigenvalues.*oldhat;
 	new = real(FFTW.ifft(newhat));
 	result = ScalarGridData(new,mygrid);
 	return result
 end
 
-function InvertOperator(mydata::ScalarGridData,myoperator::AbstractDifferentialOperator,mygrid::AbstractGrid)
-	rhshat = FFTW.fft(mydata.U);
-	newhat = myoperator.invertEigenvalues.*rhshat;
+#This function inverts a differential operator on a scalar function on a grid
+function InvertOperator(mydata::ScalarGridData,myoperator::PeriodicDifferentialOperator,mygrid::PeriodicEulGrid)
+	oldhat = FFTW.fft(mydata.U);
+	newhat = myoperator.invertEigenvalues.*oldhat;
 	new = real(FFTW.ifft(newhat));
 	result = ScalarGridData(new,mygrid);
+	return result
+end
+
+#Now we need two new methods for the above function, but for vector data. 
+function ApplyOperator(mydata::VectorGridData,myoperator::PeriodicDifferentialOperator,mygrid::PeriodicEulGrid)
+	oldUhat = FFTW.fft(mydata.U);
+	oldVhat = FFTW.fft(mydata.V);
+	newUhat = myoperator.applyEigenvalues.*oldUhat;
+	newVhat = myoperator.applyEigenvalues.*oldVhat;
+	newU = real(FFTW.ifft(newUhat));
+	newV = real(FFTW.ifft(newVhat));
+	result = ScalarGridData(newU,newV,mygrid);
+	return result
+end
+
+function InvertOperator(mydata::ScalarGridData,myoperator::PeriodicDifferentialOperator,mygrid::PeriodicEulGrid)
+	oldUhat = FFTW.fft(mydata.U);
+	oldVhat = FFTW.fft(mydata.V);
+	newUhat = myoperator.invertEigenvalues.*oldUhat;
+	newVhat = myoperator.invertEigenvalues.*oldVhat;
+	newU = real(FFTW.ifft(newUhat));
+	newV = real(FFTW.ifft(newVhat));
+	result = ScalarGridData(newU,newV,mygrid);
 	return result
 end
