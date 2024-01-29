@@ -151,8 +151,8 @@ function MakePeriodicLaplacian(mygrid::PeriodicEulGrid)
 	ωy = FFTW.fftfreq(mygrid.Ny,mygrid.Ny/mygrid.H)
 	compfreqx = im*ωx*(2*pi); #The eigenvalues of a single derivative in x&y
     compfreqy = im*ωy*(2*pi);
-    ΩX = (compfreqx[i] for i=1:Nx,j=1:Ny); #put them into arrays the same size as the grid
-    ΩY = (compfreqy[j] for i=1:Nx,j=1:Ny);
+    ΩX = (compfreqx[i] for i=1:mygrid.Nx,j=1:mygrid.Ny); #put them into arrays the same size as the grid
+    ΩY = (compfreqy[j] for i=1:mygrid.Nx,j=1:mygrid.Ny);
 
     applyeigs = (ΩX.^2 + ΩY.^2); #Eigenvalues of the laplacian
     inteigs = 1 ./applyeigs; #The inverse of the eigenvalues of the laplacian
