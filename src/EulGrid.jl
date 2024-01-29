@@ -1,5 +1,5 @@
 # Code to be loaded into IBMProject
-using FFTW
+import FFTW
 
 abstract type AbstractGrid end
 abstract type AbstractGridFunction end
@@ -147,8 +147,8 @@ end
 
 
 function MakePeriodicLaplacian(mygrid::PeriodicEulGrid)
-	ωx = fftfreq(mygrid.Nx,mygrid.Nx/mygrid.L)
-	ωy = fftfreq(mygrid.Ny,mygrid.Ny/mygrid.H)
+	ωx = FFTW.fftfreq(mygrid.Nx,mygrid.Nx/mygrid.L)
+	ωy = FFTW.fftfreq(mygrid.Ny,mygrid.Ny/mygrid.H)
 	compfreqx = im*ωx*(2*pi); #The eigenvalues of a single derivative in x&y
     compfreqy = im*ωy*(2*pi);
     ΩX = (compfreqx[i] for i=1:Nx,j=1:Ny); #put them into arrays the same size as the grid
