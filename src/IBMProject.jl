@@ -19,9 +19,9 @@ include("EulGrid.jl")
 # # EulGrid.jl
 export PeriodicEulGrid,
        ScalarGridData,
-       VectorGridData
-       # DarcyParam,
-       # FluidParam,
+       VectorGridData,
+       ApplySingleOperator,
+       InvertSingleOperator
        # BrinkmanParam,
        # BrinkmanMPParam,
        # FluidVarParam
