@@ -151,7 +151,7 @@ end
 
 
 function ScalarBndInterp(data::Matrix{Float64},mybnd::AbstractBoundary,mygrid::AbstractGrid)
-	if ~(size(data) == (mygrid.Nx,mygrid.Ny)
+	if ~(size(data) == (mygrid.Nx,mygrid.Ny))
 		throw(ArgumentError("Size of data does not match grid"))
 	end
 
