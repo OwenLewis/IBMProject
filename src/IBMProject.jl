@@ -2,7 +2,7 @@ module IBMProject
 
 # Custom types
 include("EulGrid.jl")
-# include("ImmersedBnd.jl")
+include("ImmersedBnd.jl")
 # include("ImmersedMesh.jl")
 # include("PDETypes.jl")
 
@@ -20,18 +20,15 @@ include("EulGrid.jl")
 export PeriodicEulGrid,
        ScalarGridData,
        VectorGridData,
+       PeriodicDifferentialOperator,
        ApplySingleOperator,
        InvertSingleOperator
-       # BrinkmanParam,
-       # BrinkmanMPParam,
-       # FluidVarParam
 
-# # ImmersedBnd.jl
-# export Problem,
-#        Dirichlet,
-#        Neumann,
-#        Robin,
-#        Forcing
+
+# ImmersedBnd.jl
+export PeriodicLagBnd,
+       ScalarBndData
+
 
 # # ImmersedMesh.jl
 # export squareMesh,
