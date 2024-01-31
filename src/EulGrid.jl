@@ -168,7 +168,7 @@ end
 
 
 #This function applys a differential operator to a scalar function on a periodic grid
-function ApplyOperator(mydata::ScalarGridData,myoperator::PeriodicDifferentialOperator,mygrid::PeriodicEulGrid)
+function ApplySingleOperator(mydata::ScalarGridData,myoperator::PeriodicDifferentialOperator,mygrid::PeriodicEulGrid)
 	oldhat = FFTW.fft(mydata.U);
 	newhat = myoperator.applyEigenvalues.*oldhat;
 	new = real(FFTW.ifft(newhat));
@@ -177,7 +177,7 @@ function ApplyOperator(mydata::ScalarGridData,myoperator::PeriodicDifferentialOp
 end
 
 #This function inverts a differential operator on a scalar function on a grid
-function InvertOperator(mydata::ScalarGridData,myoperator::PeriodicDifferentialOperator,mygrid::PeriodicEulGrid)
+function InvertSingleOperator(mydata::ScalarGridData,myoperator::PeriodicDifferentialOperator,mygrid::PeriodicEulGrid)
 	oldhat = FFTW.fft(mydata.U);
 	newhat = myoperator.invertEigenvalues.*oldhat;
 	new = real(FFTW.ifft(newhat));
@@ -186,7 +186,7 @@ function InvertOperator(mydata::ScalarGridData,myoperator::PeriodicDifferentialO
 end
 
 #Now we need two new methods for the above function, but for vector data. 
-function ApplyOperator(mydata::VectorGridData,myoperator::PeriodicDifferentialOperator,mygrid::PeriodicEulGrid)
+function ApplySingleOperator(mydata::VectorGridData,myoperator::PeriodicDifferentialOperator,mygrid::PeriodicEulGrid)
 	oldUhat = FFTW.fft(mydata.U);
 	oldVhat = FFTW.fft(mydata.V);
 	newUhat = myoperator.applyEigenvalues.*oldUhat;
