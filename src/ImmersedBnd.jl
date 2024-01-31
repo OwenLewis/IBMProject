@@ -226,5 +226,5 @@ function  GridIntegral(data::Matrix{Float64},mygrid::AbstractGrid)
 
 	summand = @. data*mygrid.dx*mygrid.dy;
 	output = sum(summand);
-	return outputz
+	return output
 end
