@@ -201,3 +201,30 @@ function PeskinDelta(X::StepRangeLen{Float64, Float64, Float64, Int64})
 	return delta
 end
 
+
+
+###########################################################
+# Simple integration techniques will be necessary as well #
+###########################################################
+#On periodic grids simple quadrature rules should have an additional
+#Order of accuracy. Should be good enough for me. 
+
+function  BndIntegral(data::Vector{Float64},mybnd::AbstractBoundary)
+	if ~(length(data) == mybnd.N)
+		throw(ArgumentError("Size of data does not match boundry"))
+	end
+
+	summand = @. data*mybnd.ds0;
+	output = sum(summand);
+	return output
+end
+
+function  GridIntegral(data::Matrix{Float64},mygrid::AbstractGrid)
+	if ~(size(data) == (mygrid.Nx,mygrid.Ny))
+		throw(ArgumentError("Size of data does not match grid"))
+	end
+
+	summand = @. data*mygrid.dx*mygrid.dy;
+	output = sum(summand);
+	return outputz
+end
