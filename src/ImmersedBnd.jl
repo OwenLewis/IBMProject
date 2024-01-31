@@ -31,6 +31,8 @@ mutable struct PeriodicLagBnd <: AbstractBoundary
 
 end
 
+
+#We can make a periodic lagrangian boundary as long as we get two vectors of location points. 
 function PeriodicLagBnd(X::Vector{T},Y::Vector{T}) where T <: Real
 	if ~(size(X) == size(Y))
 		throw(ArgumentError("Size of inputs does not match"));
@@ -70,7 +72,7 @@ function PeriodicLagBnd(X::Vector{T},Y::Vector{T}) where T <: Real
 
 end
 
-
+#This is a struct which holds data defined on the boundary. First scalar
 mutable struct ScalarBndData <: AbstractBoundaryFunction
 	U::Vector{Float64}
 	bnd::AbstractBoundary
@@ -84,6 +86,29 @@ mutable struct ScalarBndData <: AbstractBoundaryFunction
 	end
 end
 
+#And now vector
+mutable struct VectorBndData <: AbstractBoundaryFunction
+	U::Vector{Float64}
+	V::Vector{Float64}
+	bnd::AbstractBoundary
+
+	function VectorBndData(u::Vector{Float64},v::Vector{Float64},mybnd::AbstractBoundary)
+		if ~(length(u) == mybnd.N)
+			throw(ArgumentError("Size of first input does not match boundary size"));
+		elseif ~(length(v) == mybnd.N)
+			throw(ArgumentError("Size of second input does not match boundary size"));
+		else
+			return new(u,v,mybnd)
+		end
+	end
+end
+
+
+
+
+############################################
+#  Now for some spread and inter operators #
+############################################
 
 function ScalarBndSpread(data::Vector{Float64},mybnd::AbstractBoundary,mygrid::AbstractGrid)
 	if ~(length(data) == mybnd.N)
@@ -102,6 +127,7 @@ function ScalarBndSpread(data::Vector{Float64},mybnd::AbstractBoundary,mygrid::A
 		modxin = mod1.(xindeces,Nx);
 		coords = mygrid.dx*(xindeces .- 0.5);
 		distance = coords .- mybnd.bnd_loc[i,1];
+
 		xweights = PeskinDelta(distance/mygrid.dx)./mygrid.dx;
 
 
@@ -122,6 +148,47 @@ function ScalarBndSpread(data::Vector{Float64},mybnd::AbstractBoundary,mygrid::A
 	end
 	return output
 end
+
+
+function ScalarBndInterp(data::Matrix{Float64},mybnd::AbstractBoundary,mygrid::AbstractGrid)
+	if ~(size(data) == (mygrid.Nx,mygrid.Ny)
+		throw(ArgumentError("Size of data does not match grid"))
+	end
+
+	M = mybnd.N;
+	Nx = mygrid.Nx;
+	Ny = mygrid.Ny;
+
+	output = zeros(M);
+
+	for i = 1:M
+		left = Int(floor(mybnd.bnd_loc[i,1]/mygrid.dx + 0.5));
+		xindeces = left-1:left+2;
+		modxin = mod1.(xindeces,Nx);
+		coords = mygrid.dx*(xindeces .- 0.5);
+		distance = coords .- mybnd.bnd_loc[i,1];
+
+		xweights = PeskinDelta(distance/mygrid.dx)./mygrid.dx;
+
+
+		bottom = Int(floor(mybnd.bnd_loc[i,2]/mygrid.dy + 0.5));
+		yindeces = bottom-1:bottom+2;
+		modyin = mod1.(yindeces,Ny);
+		coords = mygrid.dy*(yindeces .- 0.5);
+		distance = coords .- mybnd.bnd_loc[i,2];
+
+		yweights = PeskinDelta(distance/mygrid.dy)./mygrid.dy;
+
+		for (j,indx) in pairs(modxin)
+			for (k,indy) in pairs(modyin)
+				output[i] = output[i] + data[indx,indy]*xweights[j]*yweights[k]*mygrid.dx*mygrid.dy
+			end
+		end
+
+	end
+	return output
+end
+
 
 
 
