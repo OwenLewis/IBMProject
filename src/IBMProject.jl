@@ -30,23 +30,5 @@ export PeriodicLagBnd,
        ScalarBndData
 
 
-# # ImmersedMesh.jl
-# export squareMesh,
-#        squareMeshFluid,
-#        Mesh,
-#        FluidMesh,
-#        axisymMesh,
-#        axisymFluid
-
-# # PDETypes.jl
-# export pointTransform,
-#        onSegment,
-#        doIntersect,
-#        isInsideDomain,
-#        meshTransform
-
-# # ErrorAnalysis.jl
-# export DomainNorm,
-#        hCalc
 end # module
 
