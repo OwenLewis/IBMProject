@@ -20,9 +20,7 @@ include("DiffOpers.jl")
 export PeriodicEulGrid,
        ScalarGridData,
        VectorGridData,
-       PeriodicDifferentialOperator,
-       ApplySingleOperator,
-       InvertSingleOperator
+       GridIntegral
 
 
 # ImmersedBnd.jl
@@ -32,6 +30,11 @@ export PeriodicLagBnd,
        ScalarBndInterp,
        BndIntegral
 
+# DiffOpers.jl
+export SimplePeriodicDifferentialOperator,
+       GradientPeriodicDifferentialOperator,
+       DivergencePeriodicDifferentialOperator,
+       ApplySimpleOperator
 
 end # module
 
