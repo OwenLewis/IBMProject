@@ -10,23 +10,23 @@ abstract type AbstractDifferentialOperator end
 #This one is simple and does not change the rank of the data
 struct SimplePeriodicDifferentialOperator <: AbstractDifferentialOperator
 	grid::PeriodicEulGrid
-	Eigenvalues::Matrix{Float64}
+	Eigenvalues::Matrix{ComplexF64}
 end
 
 #This one is gradient-like. Applying it will act on scalars and produce vectors
 #Inverting it will act on vectors and produce scalars
 struct GradientPeriodicDifferentialOperator <: AbstractDifferentialOperator
 	grid::PeriodicEulGrid
-	EigenvaluesU::Matrix{Float64}
-	EigenvaluesV::Matrix{Float64}
+	EigenvaluesU::Matrix{ComplexF64}
+	EigenvaluesV::Matrix{ComplexF64}
 end
 
 #This one is divergence-like. Applying it will act on vectors and produce scalars
 #Inverting it will act on scalars and produce vectors
 struct DivergencePeriodicDifferentialOperator <: AbstractDifferentialOperator
 	grid::PeriodicEulGrid
-	EigenvaluesU::Matrix{Float64}
-	EigenvaluesV::Matrix{Float64}
+	EigenvaluesU::Matrix{ComplexF64}
+	EigenvaluesV::Matrix{ComplexF64}
 end
 
 
