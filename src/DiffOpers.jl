@@ -54,8 +54,8 @@ function MakePeriodicDivergence(mygrid::PeriodicEulGrid)
 	ωy = FFTW.fftfreq(mygrid.Ny,mygrid.Ny/mygrid.H)
 	compfreqx = im*ωx*(2*pi); #The eigenvalues of a single derivative in x&y
     compfreqy = im*ωy*(2*pi);
-    ΩX = (compfreqx[i] for i=1:mygrid.Nx,j=1:mygrid.Ny); #put them into arrays the same size as the grid
-    ΩY = (compfreqy[j] for i=1:mygrid.Nx,j=1:mygrid.Ny);
+    ΩX = [compfreqx[i] for i=1:mygrid.Nx,j=1:mygrid.Ny]; #put them into arrays the same size as the grid
+    ΩY = [compfreqy[j] for i=1:mygrid.Nx,j=1:mygrid.Ny];
 
 	Div = DivergencePeriodicDifferentialOperator(mygrid,ΩX,ΩY);
 	return Div
@@ -66,8 +66,8 @@ function MakePeriodicGradient(mygrid::PeriodicEulGrid)
 	ωy = FFTW.fftfreq(mygrid.Ny,mygrid.Ny/mygrid.H)
 	compfreqx = im*ωx*(2*pi); #The eigenvalues of a single derivative in x&y
     compfreqy = im*ωy*(2*pi);
-    ΩX = (compfreqx[i] for i=1:mygrid.Nx,j=1:mygrid.Ny); #put them into arrays the same size as the grid
-    ΩY = (compfreqy[j] for i=1:mygrid.Nx,j=1:mygrid.Ny);
+    ΩX = [compfreqx[i] for i=1:mygrid.Nx,j=1:mygrid.Ny]; #put them into arrays the same size as the grid
+    ΩY = [compfreqy[j] for i=1:mygrid.Nx,j=1:mygrid.Ny];
 
 	Div = GradientPeriodicDifferentialOperator(mygrid,ΩX,ΩY);
 	return Grad
