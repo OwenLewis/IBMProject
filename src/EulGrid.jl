@@ -1,9 +1,7 @@
 # Code to be loaded into IBMProject
-import FFTW
 
 abstract type AbstractGrid end
 abstract type AbstractGridFunction end
-abstract type AbstractDifferentialOperator end
 
 #Lets define an Eulerian Grid
 struct PeriodicEulGrid <: AbstractGrid
@@ -50,13 +48,6 @@ mutable struct VectorGridData <: AbstractGridFunction
 			return new(ux,uy,mygrid)
 		end 
 	end
-end
-
-#Now we can define differential Operators which can act on grid data
-struct PeriodicDifferentialOperator <: AbstractDifferentialOperator
-	grid::PeriodicEulGrid
-	applyEigenvalues::Matrix{Float64}
-	invertEigenvalues::Matrix{Float64}
 end
 
 ###############################################
@@ -145,65 +136,19 @@ function VectorGridData(ux::Matrix{T},uy::Matrix{T},mygrid::AbstractGrid) where 
 	end
 end
 
-###############################################
-#         Now for some useful functions       #
-###############################################
 
+###########################################################
+# Simple integration techniques will be necessary as well #
+###########################################################
+#On periodic grids simple quadrature rules should have an additional
+#Order of accuracy. Should be good enough for me. 
 
-#This is to make a periodic laplacian of type PeriodicDifferentialOperator
-function MakePeriodicLaplacian(mygrid::PeriodicEulGrid)
-	ωx = FFTW.fftfreq(mygrid.Nx,mygrid.Nx/mygrid.L)
-	ωy = FFTW.fftfreq(mygrid.Ny,mygrid.Ny/mygrid.H)
-	compfreqx = im*ωx*(2*pi); #The eigenvalues of a single derivative in x&y
-    compfreqy = im*ωy*(2*pi);
-    ΩX = (compfreqx[i] for i=1:mygrid.Nx,j=1:mygrid.Ny); #put them into arrays the same size as the grid
-    ΩY = (compfreqy[j] for i=1:mygrid.Nx,j=1:mygrid.Ny);
+function  GridIntegral(data::Matrix{Float64},mygrid::AbstractGrid)
+	if ~(size(data) == (mygrid.Nx,mygrid.Ny))
+		throw(ArgumentError("Size of data does not match grid"))
+	end
 
-    applyeigs = (ΩX.^2 + ΩY.^2); #Eigenvalues of the laplacian
-    inteigs = 1 ./applyeigs; #The inverse of the eigenvalues of the laplacian
-    inteigs[1,1] = 0;    #Zero out the 0-0 eigenvalue
-	Lap = PeriodicDifferentialOperator(mygrid,applyeigs,inteigs);
-	return Lap
-end
-
-
-#This function applys a differential operator to a scalar function on a periodic grid
-function ApplySingleOperator(mydata::ScalarGridData,myoperator::PeriodicDifferentialOperator,mygrid::PeriodicEulGrid)
-	oldhat = FFTW.fft(mydata.U);
-	newhat = myoperator.applyEigenvalues.*oldhat;
-	new = real(FFTW.ifft(newhat));
-	result = ScalarGridData(new,mygrid);
-	return result
-end
-
-#This function inverts a differential operator on a scalar function on a grid
-function InvertSingleOperator(mydata::ScalarGridData,myoperator::PeriodicDifferentialOperator,mygrid::PeriodicEulGrid)
-	oldhat = FFTW.fft(mydata.U);
-	newhat = myoperator.invertEigenvalues.*oldhat;
-	new = real(FFTW.ifft(newhat));
-	result = ScalarGridData(new,mygrid);
-	return result
-end
-
-#Now we need two new methods for the above function, but for vector data. 
-function ApplySingleOperator(mydata::VectorGridData,myoperator::PeriodicDifferentialOperator,mygrid::PeriodicEulGrid)
-	oldUhat = FFTW.fft(mydata.U);
-	oldVhat = FFTW.fft(mydata.V);
-	newUhat = myoperator.applyEigenvalues.*oldUhat;
-	newVhat = myoperator.applyEigenvalues.*oldVhat;
-	newU = real(FFTW.ifft(newUhat));
-	newV = real(FFTW.ifft(newVhat));
-	result = ScalarGridData(newU,newV,mygrid);
-	return result
-end
-
-function InvertSingleOperator(mydata::VectorGridData,myoperator::PeriodicDifferentialOperator,mygrid::PeriodicEulGrid)
-	oldUhat = FFTW.fft(mydata.U);
-	oldVhat = FFTW.fft(mydata.V);
-	newUhat = myoperator.invertEigenvalues.*oldUhat;
-	newVhat = myoperator.invertEigenvalues.*oldVhat;
-	newU = real(FFTW.ifft(newUhat));
-	newV = real(FFTW.ifft(newVhat));
-	result = ScalarGridData(newU,newV,mygrid);
-	return result
+	summand = @. data*mygrid.dx*mygrid.dy;
+	output = sum(summand);
+	return output
 end

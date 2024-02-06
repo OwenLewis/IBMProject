@@ -3,7 +3,7 @@ module IBMProject
 # Custom types
 include("EulGrid.jl")
 include("ImmersedBnd.jl")
-# include("ImmersedMesh.jl")
+include("DiffOpers.jl")
 # include("PDETypes.jl")
 
 # # Mesh input/generation
@@ -27,7 +27,10 @@ export PeriodicEulGrid,
 
 # ImmersedBnd.jl
 export PeriodicLagBnd,
-       ScalarBndData
+       ScalarBndData,
+       ScalarBndSpread,
+       ScalarBndInterp,
+       BndIntegral
 
 
 end # module

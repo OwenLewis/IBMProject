@@ -28,10 +28,17 @@ println("Integral on Grid:     ", IBMProject.GridIntegral(griddata,mygrid))
 
 as_struct = ScalarGridData(griddata,mygrid);
 
-L = IBMProject.MakePeriodicLaplacian(mygrid);
+L = IBMProject.MakePeriodicLaplacian(mygrid); #Lets create a laplacian
 
-foo = IBMProject.ApplySingleOperator(as_struct,L,mygrid);
-bar = IBMProject.InvertSingleOperator(as_struct,L,mygrid);
+#Now (by hand), we'll create an inverse laplacian.
+foo = L.Eigenvalues;
+bar = 1./foo;
+bar[1,1] = 0;
+Linv = IBMProject.SimplePeriodicDifferentialOperator(mygrid,bar);
+
+
+foo = IBMProject.ApplySimpleOperator(as_struct,L,mygrid);
+bar = IBMProject.ApplySimpleOperator(as_struct,Linv,mygrid);
 
 
 B = heatmap(mygrid.X[:,1],mygrid.Y[1,:],foo.U);
