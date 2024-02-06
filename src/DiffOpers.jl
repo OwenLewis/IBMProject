@@ -81,7 +81,7 @@ function ApplySimpleOperator(mydata::ScalarGridData,myoperator::SimplePeriodicDi
 	oldhat = FFTW.fft(mydata.U);
 	newhat = myoperator.Eigenvalues.*oldhat;
 	new = real(FFTW.ifft(newhat));
-	result = ScalarGridData(new,mygrid);
+	result = ScalarGridData(new,myoperator.grid);
 	return result
 end
 
@@ -110,7 +110,7 @@ function ApplySimpleOperator(mydata::VectorGridData,myoperator::SimplePeriodicDi
 	newVhat = myoperator.Eigenvalues.*oldVhat;
 	newU = real(FFTW.ifft(newUhat));
 	newV = real(FFTW.ifft(newVhat));
-	result = VectorGridData(newU,newV,mygrid);
+	result = VectorGridData(newU,newV,myoperator.grid);
 	return result
 end
 
