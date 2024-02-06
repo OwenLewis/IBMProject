@@ -218,13 +218,3 @@ function  BndIntegral(data::Vector{Float64},mybnd::AbstractBoundary)
 	output = sum(summand);
 	return output
 end
-
-function  GridIntegral(data::Matrix{Float64},mygrid::AbstractGrid)
-	if ~(size(data) == (mygrid.Nx,mygrid.Ny))
-		throw(ArgumentError("Size of data does not match grid"))
-	end
-
-	summand = @. data*mygrid.dx*mygrid.dy;
-	output = sum(summand);
-	return output
-end
