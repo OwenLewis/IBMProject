@@ -180,8 +180,9 @@ function ApplyGradientOperator(mydata::ScalarGridData,myoperator::GradientPeriod
 	oldUhat = FFTW.fft(mydata.U);
 	newUhat = myoperator.EigenvaluesU.*oldUhat;
 	newVhat = myoperator.EigenvaluesV.*oldUhat;
-	new = real(FFTW.ifft(newUhat .+ newVhat));
-	result = VectorGridData(new,myoperator.grid);
+	newU = real(FFTW.ifft(newUhat));
+	newV = real(FFTW.ifft(newVhat));
+	result = VectorGridData(newU,newV,myoperator.grid);
 	return result
 end
 
