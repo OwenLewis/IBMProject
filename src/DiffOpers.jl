@@ -74,7 +74,10 @@ end
 #####Simple ones first, there are a few cases#####
 #####First we do scalar data, either struct or simple arrays#####
 #This applys a simple differential operator to a scalar function on a periodic grid
-function ApplySimpleOperator(mydata::ScalarGridData,myoperator::PeriodicDifferentialOperator,mygrid::PeriodicEulGrid)
+function ApplySimpleOperator(mydata::ScalarGridData,myoperator::SimplePeriodicDifferentialOperator)
+	if ~(mydata.grid === myoperator.grid)
+		throw(ArgumentError("Data and operator grids do not match"));
+	end
 	oldhat = FFTW.fft(mydata.U);
 	newhat = myoperator.Eigenvalues.*oldhat;
 	new = real(FFTW.ifft(newhat));
@@ -83,9 +86,9 @@ function ApplySimpleOperator(mydata::ScalarGridData,myoperator::PeriodicDifferen
 end
 
 #Same, but no need for a struct. Will apply to an array of data
-function ApplySimpleOperator(mydata::Matrix{Float64},myoperator::PeriodicDifferentialOperator,mygrid::PeriodicEulGrid)
-	if ~(size(mydata) == (mygrid.Nx,mygrid.Ny))
-		throw(ArgumentError(ux,"Size of input does not match grid size"));
+function ApplySimpleOperator(mydata::Matrix{Float64},myoperator::SimplePeriodicDifferentialOperator)
+	if ~(size(mydata) == (myoperator.grid.Nx,myoperator.grid.Ny))
+		throw(ArgumentError("Size of input does not match grid size of operator"));
 	end
 	oldhat = FFTW.fft(mydata);
 	newhat = myoperator.Eigenvalues.*oldhat;
@@ -97,7 +100,10 @@ end
 ####Now the same as above, but for vector structs or pairs of arrays####
 
 #Applying the operator to a vector grid data struct
-function ApplySimpleOperator(mydata::VectorGridData,myoperator::SimplePeriodicDifferentialOperator,mygrid::PeriodicEulGrid)
+function ApplySimpleOperator(mydata::VectorGridData,myoperator::SimplePeriodicDifferentialOperator)
+	if ~(mydata.grid === myoperator.grid)
+		throw(ArgumentError("Data and operator grids do not match"));
+	end
 	oldUhat = FFTW.fft(mydata.U);
 	oldVhat = FFTW.fft(mydata.V);
 	newUhat = myoperator.Eigenvalues.*oldUhat;
@@ -109,11 +115,11 @@ function ApplySimpleOperator(mydata::VectorGridData,myoperator::SimplePeriodicDi
 end
 
 #Applying it to two arrays
-function ApplySimpleOperator(mydataU::Matrix{Float64},mydataV::Matrix{Float64},myoperator::SimplePeriodicDifferentialOperator,mygrid::PeriodicEulGrid)
+function ApplySimpleOperator(mydataU::Matrix{Float64},mydataV::Matrix{Float64},myoperator::SimplePeriodicDifferentialOperator)
 	if ~(size(mydataU) == (mygrid.Nx,mygrid.Ny))
-		throw(ArgumentError(ux,"Size of first input does not match grid size"));
+		throw(ArgumentError("Size of first input does not match grid size"));
 	elseif ~(size(mydataV) == (mygrid.Nx,mygrid.Ny))
-		throw(ArgumentError(ux,"Size of second input does not match grid size"));
+		throw(ArgumentError("Size of second input does not match grid size"));
 	end
 	oldUhat = FFTW.fft(mydataU);
 	oldVhat = FFTW.fft(mydataV);

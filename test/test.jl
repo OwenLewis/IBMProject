@@ -37,8 +37,8 @@ bar[1,1] = 0;
 Linv = IBMProject.SimplePeriodicDifferentialOperator(mygrid,bar);
 
 
-foo = IBMProject.ApplySimpleOperator(as_struct,L,mygrid);
-bar = IBMProject.ApplySimpleOperator(as_struct,Linv,mygrid);
+foo = IBMProject.ApplySimpleOperator(as_struct,L);
+bar = IBMProject.ApplySimpleOperator(as_struct,Linv);
 
 
 B = heatmap(mygrid.X[:,1],mygrid.Y[1,:],foo.U);
