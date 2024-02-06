@@ -32,7 +32,7 @@ L = IBMProject.MakePeriodicLaplacian(mygrid); #Lets create a laplacian
 
 #Now (by hand), we'll create an inverse laplacian.
 foo = L.Eigenvalues;
-bar = 1./foo;
+bar = 1.0./foo;
 bar[1,1] = 0;
 Linv = IBMProject.SimplePeriodicDifferentialOperator(mygrid,bar);
 

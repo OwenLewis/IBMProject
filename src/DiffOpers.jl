@@ -116,9 +116,9 @@ end
 
 #Applying it to two arrays
 function ApplySimpleOperator(mydataU::Matrix{Float64},mydataV::Matrix{Float64},myoperator::SimplePeriodicDifferentialOperator)
-	if ~(size(mydataU) == (mygrid.Nx,mygrid.Ny))
+	if ~(size(mydataU) == (myoperator.grid.Nx,myoperator.grid.Ny))
 		throw(ArgumentError("Size of first input does not match grid size"));
-	elseif ~(size(mydataV) == (mygrid.Nx,mygrid.Ny))
+	elseif ~(size(mydataV) == (myoperator.grid.Nx,myoperator.grid.Ny))
 		throw(ArgumentError("Size of second input does not match grid size"));
 	end
 	oldUhat = FFTW.fft(mydataU);
