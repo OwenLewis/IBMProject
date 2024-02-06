@@ -57,14 +57,21 @@ function MakePeriodicDivergence(mygrid::PeriodicEulGrid)
     ΩX = (compfreqx[i] for i=1:mygrid.Nx,j=1:mygrid.Ny); #put them into arrays the same size as the grid
     ΩY = (compfreqy[j] for i=1:mygrid.Nx,j=1:mygrid.Ny);
 
-    applyeigsU = ΩX;
-    applyeigsV = ΩY;
-
-	Div = DivergencePeriodicDifferentialOperator(mygrid,applyeigsU,applyeigsV);
+	Div = DivergencePeriodicDifferentialOperator(mygrid,ΩX,ΩY);
 	return Div
 end
 
+function MakePeriodicGradient(mygrid::PeriodicEulGrid)
+	ωx = FFTW.fftfreq(mygrid.Nx,mygrid.Nx/mygrid.L)
+	ωy = FFTW.fftfreq(mygrid.Ny,mygrid.Ny/mygrid.H)
+	compfreqx = im*ωx*(2*pi); #The eigenvalues of a single derivative in x&y
+    compfreqy = im*ωy*(2*pi);
+    ΩX = (compfreqx[i] for i=1:mygrid.Nx,j=1:mygrid.Ny); #put them into arrays the same size as the grid
+    ΩY = (compfreqy[j] for i=1:mygrid.Nx,j=1:mygrid.Ny);
 
+	Div = GradientPeriodicDifferentialOperator(mygrid,ΩX,ΩY);
+	return Grad
+end
 
 ###############################################
 #   This is how we apply/invert operators     #
@@ -128,4 +135,65 @@ function ApplySimpleOperator(mydataU::Matrix{Float64},mydataV::Matrix{Float64},m
 	newU = real(FFTW.ifft(newUhat));
 	newV = real(FFTW.ifft(newVhat));
 	return newU,newV
+end
+
+
+
+#####Now the divergence-like opeators#####
+#####First we do vector structs (return scalar struct)#####
+function ApplyDivergenceOperator(mydata::VectorGridData,myoperator::DivergencePeriodicDifferentialOperator)
+	if ~(mydata.grid === myoperator.grid)
+		throw(ArgumentError("Data and operator grids do not match"));
+	end
+	oldUhat = FFTW.fft(mydata.U);
+	oldVhat = FFTW.fft(mydata.V);
+	newUhat = myoperator.EigenvaluesU.*oldUhat;
+	newVhat = myoperator.EigenvaluesV.*oldVhat;
+	new = real(FFTW.ifft(newUhat .+ newVhat));
+	result = ScalarGridData(new,myoperator.grid);
+	return result
+end
+
+#Now apply to vector data stored as two arrays
+function ApplyDivergenceOperator(mydataU::Matrix{Float64},mydataV::Matrix{Float64},myoperator::DivergencePeriodicDifferentialOperator)
+	if ~(size(mydataU) == (myoperator.grid.Nx,myoperator.grid.Ny))
+		throw(ArgumentError("Size of first input does not match grid size"));
+	elseif ~(size(mydataV) == (myoperator.grid.Nx,myoperator.grid.Ny))
+		throw(ArgumentError("Size of second input does not match grid size"));
+	end
+	oldUhat = FFTW.fft(mydataU);
+	oldVhat = FFTW.fft(mydataV);
+	newUhat = myoperator.EigenvaluesU.*oldUhat;
+	newVhat = myoperator.EigenvaluesV.*oldVhat;
+	new = real(FFTW.ifft(newUhat .+ newVhat));
+	return new
+end
+
+
+
+#####Finally, the gradient-like opeators#####
+#####First we do scalar structs (return vector struct)#####
+function ApplyGradientOperator(mydata::ScalarGridData,myoperator::GradientPeriodicDifferentialOperator)
+	if ~(mydata.grid === myoperator.grid)
+		throw(ArgumentError("Data and operator grids do not match"));
+	end
+	oldUhat = FFTW.fft(mydata.U);
+	newUhat = myoperator.EigenvaluesU.*oldUhat;
+	newVhat = myoperator.EigenvaluesV.*oldUhat;
+	new = real(FFTW.ifft(newUhat .+ newVhat));
+	result = VectorGridData(new,myoperator.grid);
+	return result
+end
+
+#Now apply to vector data stored as two arrays
+function ApplyGradientOperator(mydata::Matrix{Float64},myoperator::GradientPeriodicDifferentialOperator)
+	if ~(size(mydata) == (myoperator.grid.Nx,myoperator.grid.Ny))
+		throw(ArgumentError("Size of first input does not match grid size"));
+	end
+	oldhat = FFTW.fft(mydata);
+	newUhat = myoperator.EigenvaluesU.*oldhat;
+	newVhat = myoperator.EigenvaluesV.*oldhat;
+	newU = real(FFTW.ifft(newUhat));
+	newV = real(FFTW.ifft(newVhat));
+	return newU, newV
 end

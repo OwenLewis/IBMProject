@@ -34,7 +34,9 @@ export PeriodicLagBnd,
 export SimplePeriodicDifferentialOperator,
        GradientPeriodicDifferentialOperator,
        DivergencePeriodicDifferentialOperator,
-       ApplySimpleOperator
+       ApplySimpleOperator,
+       ApplyDivergenceOperator,
+       ApplyGradientOperator
 
 end # module
 
