@@ -69,7 +69,7 @@ function MakePeriodicGradient(mygrid::PeriodicEulGrid)
     ΩX = [compfreqx[i] for i=1:mygrid.Nx,j=1:mygrid.Ny]; #put them into arrays the same size as the grid
     ΩY = [compfreqy[j] for i=1:mygrid.Nx,j=1:mygrid.Ny];
 
-	Div = GradientPeriodicDifferentialOperator(mygrid,ΩX,ΩY);
+	Grad = GradientPeriodicDifferentialOperator(mygrid,ΩX,ΩY);
 	return Grad
 end
 
