@@ -153,18 +153,18 @@ end
 
 
 function LagMesh(points::Vector{Vector{Float64}},triangles::Vector{Vector{S where S <: Int}})
-	Mv = length(points)
-	Mf = length(triangles)
+	Mv = length(points);
+	Mf = length(triangles);
 
-	vertices = Vector{MeshVertex}(undef,Mv)
+	vertices = Vector{MeshVertex}(undef,Mv);
 	for i = 1:Mv
-		vertices[i] = MeshVertex(points[i])
+		vertices[i] = MeshVertex(points[i]);
 	end
 
-	faces = Vector{MeshFace}(undef,Mf)
+	faces = Vector{MeshFace}(undef,Mf);
 	for i = 1:Mf
-		ipoints = triangles[i]
-		faces[i] = MeshFace(vertices[ipoints[1]],vertices[ipoints[2]],vertices[ipoints[3]])
+		ipoints = triangles[i];
+		faces[i] = MeshFace(vertices[ipoints[1]],vertices[ipoints[2]],vertices[ipoints[3]]);
 	end
 
 	#Euler's characteristic tells us how edges there should be, given vertices & faces
@@ -175,19 +175,19 @@ function LagMesh(points::Vector{Vector{Float64}},triangles::Vector{Vector{S wher
 	for i = 1:Mf
 		#Pick out their edges
 		for j = 1:3
-			newedge = faces[i].edges[j]
+			newedge = faces[i].edges[j];
 			#If the edge hasn't been seen before, add it to the array in our mesh
 			if any(x -> x.center == newedge.center,edges) == false
-				push!(edges,newedge)
+				push!(edges,newedge);
 				println("We found a new edge")
 			end
 		end
 	end
 
 	#We create the mesh with all the vertices, faces & edges
-	mesh::LagMesh = LagMesh(Mv,Mf,Me,vertices,faces,edges)
+	mesh::LagMesh = LagMesh(Mv,Mf,Me,vertices,faces,edges);
 	#And then 'initialize' it to give everyone pointers to their friends
-	ConnectMesh!(mesh)
+	ConnectMesh!(mesh);
 	return mesh
 
 end
