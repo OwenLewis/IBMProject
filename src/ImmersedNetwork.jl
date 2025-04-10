@@ -1,3 +1,5 @@
+import LinearAlgebra
+
 abstract type AbstractVertex end
 abstract type AbstractEdge end
 abstract type AbstractFace end
@@ -7,7 +9,6 @@ abstract type AbstractVertexFunction end
 abstract type AbstractEdgeFunction end
 abstract type AbstractFaceFunction end
 abstract type AbstractNetworkFunction end
-
 
 
 #Lets define the struct for a mesh vertex
@@ -64,6 +65,12 @@ mutable struct MeshFace <: AbstractFace
 	area::Float64
 	ref_area::Float64
 
+	#Matrices which hold information regarding reference and current configuration
+	Smat::Matrix{Float64}
+	Sinv::Matrix{Float64}
+	Xmat::Matrix{Float64}
+
+
 	#Booleans that indicate if this is a boundary face
 	boundary::Bool
 
@@ -79,11 +86,15 @@ function MeshFace(one::MeshVertex,two::MeshVertex,three::MeshVertex)
 				two.coords[1]*(three.coords[2] - one.coords[2]) + 
 				three.coords[1]*(one.coords[2] - two.coords[2]))/2
 
+	Smat = hcat(two.ref_coords .- one.ref_coords,three.ref_coords .- one.ref_coords);
+	Xmat = hcat(two.coords .- one.coords,three.coords .- one.coords);;
+	Sinv = LinearAlgebra.inv(Smat);
+
 	edge1 = MeshEdge(one,two)
 	edge2 = MeshEdge(two,three)
 	edge3 = MeshEdge(three,one)
 
-	face::MeshFace = MeshFace(centroid,centroid,area,area,false,[edge1,edge2,edge3],[one,two,three])
+	face::MeshFace = MeshFace(centroid,centroid,area,area,Smat,Sinv,Xmat,false,[edge1,edge2,edge3],[one,two,three])
 	return face
 end
 
@@ -131,11 +142,13 @@ mutable struct LagMesh <: AbstractNetwork
 	Mv::Int
 	#Number of triangles in the immersed network
 	Mf::Int
+	#Number of edges in the immersed network
+	Me::Int
 
 	#Location of immersed boundary points, and faces that connect them
 	vertices::Vector{AbstractVertex}
 	faces::Vector{AbstractFace}
-	# edges::Vector{AbstractEdge}
+	edges::Vector{AbstractEdge}
 end
 
 
@@ -154,210 +167,68 @@ function LagMesh(points::Vector{Vector{Float64}},triangles::Vector{Vector{S wher
 		faces[i] = MeshFace(vertices[ipoints[1]],vertices[ipoints[2]],vertices[ipoints[3]])
 	end
 
-	mesh::LagMesh = LagMesh(Mv,Mf,vertices,faces)
+	#Euler's characteristic tells us how edges there should be, given vertices & faces
+	Me = Mv + Mf - 1;
+	edges = MeshEdge[];
+
+	#We run through all the faces
+	for i = 1:Mf
+		#Pick out their edges
+		for j = 1:3
+			newedge = faces[i].edges[j]
+			#If the edge hasn't been seen before, add it to the array in our mesh
+			if any(x -> x.center == newedge.center,edges) == false
+				push!(edges,newedge)
+				println("We found a new edge")
+			end
+		end
+	end
+
+	#We create the mesh with all the vertices, faces & edges
+	mesh::LagMesh = LagMesh(Mv,Mf,Me,vertices,faces,edges)
+	#And then 'initialize' it to give everyone pointers to their friends
+	ConnectMesh!(mesh)
 	return mesh
 
 end
 
 
-function LinkMesh(mymesh::LagMesh)
-	
+#At this point the mesh is created. Faces have edges and vertices, edges have vertices,
+#Faces have both edges and vertices. 
+#Now I need to write the function which connects "up" the chain. 
+
+
+function ConnectMesh!(mymesh::LagMesh)
+
+	#Lets run through all of the edges and give their vertices pointers home
+	for i = 1:mymesh.Me
+		one,two = mymesh.edges[i].vertices
+		push!(one.edges,mymesh.edges[i])
+		push!(two.edges,mymesh.edges[i])
+	end
+
+	#Now we run through all the faces and give their edges and vertices pointers home. 
+	#We also set their 
+	for i = 1:mymesh.Mf
+		for j = 1:3
+			point = mymesh.faces[i].vertices[j]
+			point.area = mymesh.faces[i].area/3
+			point.ref_area = mymesh.faces[i].ref_area/3
+			push!(point.faces,mymesh.faces[i])
+
+			edge = mymesh.faces[i].edges[j]
+			push!(edge.faces,mymesh.faces[i])
+		end
+	end
+
+	#Finally, we should run through the edges to identify boundaries. 
+	for i = 1:mymesh.Me
+		edge = mymesh.edges[i]
+		if length(edge.faces) == 1
+			edge.boundary = true
+			edge.vertices[1].boundary = true
+			edge.vertices[2].boundary = true
+		end
+	end
 end
-# 	stretch_force::Vector{Vector{Float64}}
-# 	# connect_force::Matrix{Float64} #This one won't be used until we have an immersed mesh. 
-# 	#Arrays for constants that define constitutive laws for the above forces
-# 	lame1::Vector{Float64}
-# 	lame2::Vector{Float64}
 
-
-# 	#Arrays which are used to flag and define points of the immersed network to which the bnd is connected
-# 	# flag::Vector{Int}  #This one won't be used until we have an immersed mesh. 
-# 	# connect_buddy{Int} #This one won't be used until we have an immersed mesh. 
-
-
-# #We can make a periodic lagrangian boundary as long as we get two vectors of location points. 
-# function PeriodicLagBnd(X::Vector{T},Y::Vector{T}) where T <: Real
-# 	if ~(size(X) == size(Y))
-# 		throw(ArgumentError("Size of inputs does not match"));
-# 	end
-# 	N = length(X);
-# 	location = hcat(X,Y);
-# 	taup = zeros(size(location));
-# 	taum = zeros(size(location));
-# 	norm0 = zeros(size(location));
-	
-# 	stretch_force = 0*location;
-
-# 	kp = ones(N);
-# 	km = ones(N);
-# 	gammap = ones(N);
-# 	gammam = ones(N);
-
-# 	taup[1:N-1,:] = location[2:N,:] - location[1:N-1,:];
-# 	taup[N,:] = location[1,:] - location[N,:];
-
-# 	taum[2:N,:] = location[2:N,:] - location[1:N-1,:];
-# 	taum[1,:] = location[1,:] - location[N,:];
-	
-# 	tau0 = (taup .+ taum)./2.0;
-
-
-# 	dsp = @. sqrt(taup[:,1]^2 + taup[:,2]^2);
-# 	dsm = @. sqrt(taum[:,1]^2 + taum[:,2]^2);
-# 	ds0 = @. (dsp + dsm)/2;
-
-
-# 	norm0[:,1] = -tau0[:,2];
-# 	norm0[:,2] = tau0[:,1];
-
-# 	bnd::PeriodicLagBnd = PeriodicLagBnd(N,location,stretch_force,kp,km,gammap,gammam,taup,taum,tau0,norm0,dsp,dsm,ds0);
-# 	return bnd
-
-# end
-
-# #This is a struct which holds data defined on the boundary. First scalar
-# mutable struct ScalarBndData <: AbstractBoundaryFunction
-# 	U::Vector{Float64}
-# 	bnd::AbstractBoundary
-
-# 	function ScalarBndData(u::Vector{Float64},mybnd::AbstractBoundary)
-# 		if ~(length(u) == mybnd.N)
-# 			throw(ArgumentError("Size of input does not match boundary size"));
-# 		else
-# 			return new(u,mybnd)
-# 		end
-# 	end
-# end
-
-# #And now vector
-# mutable struct VectorBndData <: AbstractBoundaryFunction
-# 	U::Vector{Float64}
-# 	V::Vector{Float64}
-# 	bnd::AbstractBoundary
-
-# 	function VectorBndData(u::Vector{Float64},v::Vector{Float64},mybnd::AbstractBoundary)
-# 		if ~(length(u) == mybnd.N)
-# 			throw(ArgumentError("Size of first input does not match boundary size"));
-# 		elseif ~(length(v) == mybnd.N)
-# 			throw(ArgumentError("Size of second input does not match boundary size"));
-# 		else
-# 			return new(u,v,mybnd)
-# 		end
-# 	end
-# end
-
-
-
-
-# ############################################
-# #  Now for some spread and inter operators #
-# ############################################
-
-# function ScalarBndSpread(data::Vector{Float64},mybnd::AbstractBoundary,mygrid::AbstractGrid)
-# 	if ~(length(data) == mybnd.N)
-# 		throw(ArgumentError("Size of data does not match boundry"))
-# 	end
-
-# 	M = mybnd.N;
-# 	Nx = mygrid.Nx;
-# 	Ny = mygrid.Ny;
-
-# 	output = zeros(Nx,Ny);
-
-# 	for i = 1:M
-# 		left = Int(floor(mybnd.bnd_loc[i,1]/mygrid.dx + 0.5));
-# 		xindeces = left-1:left+2;
-# 		modxin = mod1.(xindeces,Nx);
-# 		coords = mygrid.dx*(xindeces .- 0.5);
-# 		distance = coords .- mybnd.bnd_loc[i,1];
-
-# 		xweights = PeskinDelta(distance/mygrid.dx)./mygrid.dx;
-
-
-# 		bottom = Int(floor(mybnd.bnd_loc[i,2]/mygrid.dy + 0.5));
-# 		yindeces = bottom-1:bottom+2;
-# 		modyin = mod1.(yindeces,Ny);
-# 		coords = mygrid.dy*(yindeces .- 0.5);
-# 		distance = coords .- mybnd.bnd_loc[i,2];
-
-# 		yweights = PeskinDelta(distance/mygrid.dy)./mygrid.dy;
-
-# 		for (j,indx) in pairs(modxin)
-# 			for (k,indy) in pairs(modyin)
-# 				output[indx,indy] = output[indx,indy] + data[i]*xweights[j]*yweights[k]*mybnd.ds0[i]
-# 			end
-# 		end
-
-# 	end
-# 	return output
-# end
-
-
-# function ScalarBndInterp(data::Matrix{Float64},mybnd::AbstractBoundary,mygrid::AbstractGrid)
-# 	if ~(size(data) == (mygrid.Nx,mygrid.Ny))
-# 		throw(ArgumentError("Size of data does not match grid"))
-# 	end
-
-# 	M = mybnd.N;
-# 	Nx = mygrid.Nx;
-# 	Ny = mygrid.Ny;
-
-# 	output = zeros(M);
-
-# 	for i = 1:M
-# 		left = Int(floor(mybnd.bnd_loc[i,1]/mygrid.dx + 0.5));
-# 		xindeces = left-1:left+2;
-# 		modxin = mod1.(xindeces,Nx);
-# 		coords = mygrid.dx*(xindeces .- 0.5);
-# 		distance = coords .- mybnd.bnd_loc[i,1];
-
-# 		xweights = PeskinDelta(distance/mygrid.dx)./mygrid.dx;
-
-
-# 		bottom = Int(floor(mybnd.bnd_loc[i,2]/mygrid.dy + 0.5));
-# 		yindeces = bottom-1:bottom+2;
-# 		modyin = mod1.(yindeces,Ny);
-# 		coords = mygrid.dy*(yindeces .- 0.5);
-# 		distance = coords .- mybnd.bnd_loc[i,2];
-
-# 		yweights = PeskinDelta(distance/mygrid.dy)./mygrid.dy;
-
-# 		for (j,indx) in pairs(modxin)
-# 			for (k,indy) in pairs(modyin)
-# 				output[i] = output[i] + data[indx,indy]*xweights[j]*yweights[k]*mygrid.dx*mygrid.dy
-# 			end
-# 		end
-
-# 	end
-# 	return output
-# end
-
-
-
-
-# function PeskinDelta(X::StepRangeLen{Float64, Float64, Float64, Int64})
-# 	delta = zeros(4)
-# 	delta[1] = (5.0 + 2.0*X[1] - sqrt(-7. - 12.0*X[1] - 4.0*X[1]^2) )/8.0
-# 	delta[2] = (3.0 + 2.0*X[2] + sqrt(1. - 4.0*X[2] - 4.0*X[2]^2) )/8.0
-# 	delta[3] = (3.0 - 2.0*X[3] + sqrt(1. + 4.0*X[3] - 4.0*X[3]^2) )/8.0
-# 	delta[4] = (5.0 - 2.0*X[4] - sqrt(-7. + 12.0*X[4] - 4.0*X[4]^2) )/8.0
-# 	return delta
-# end
-
-
-
-# ###########################################################
-# # Simple integration techniques will be necessary as well #
-# ###########################################################
-# #On periodic grids simple quadrature rules should have an additional
-# #Order of accuracy. Should be good enough for me. 
-
-# function  BndIntegral(data::Vector{Float64},mybnd::AbstractBoundary)
-# 	if ~(length(data) == mybnd.N)
-# 		throw(ArgumentError("Size of data does not match boundry"))
-# 	end
-
-# 	summand = @. data*mybnd.ds0;
-# 	output = sum(summand);
-# 	return output
-# end
