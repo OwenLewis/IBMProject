@@ -4,12 +4,11 @@ module IBMProject
 include("EulGrid.jl")
 include("ImmersedBnd.jl")
 include("DiffOpers.jl")
-# include("PDETypes.jl")
+include("ImmersedNetwork.jl")
 
-# # Mesh input/generation
-# include("MeshGeneration.jl")
-# include("GMSHreader.jl")
-# include("MeshTransform.jl")
+# # Network Functions
+# include("NetworkOpers.jl")
+
 
 # # PostProcessing
 # include("vtkExport.jl")
@@ -37,6 +36,13 @@ export SimplePeriodicDifferentialOperator,
        ApplySimpleOperator,
        ApplyDivergenceOperator,
        ApplyGradientOperator
+
+
+#ImmersedNetwork.jl
+export MeshVertex,
+       MeshEdge,
+       MeshFace, 
+       LagMesh
 
 end # module
 

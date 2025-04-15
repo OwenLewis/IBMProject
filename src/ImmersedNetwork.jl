@@ -32,13 +32,7 @@ mutable struct MeshVertex <: AbstractVertex
 	#Now we need vectors of this nodes faces and edges
 	edges::Vector{AbstractEdge}
 	faces::Vector{AbstractFace}
-
-
-	#Elastic force (density?) at vertex (might want to move this to another type)
-	# elastic_force::Vector{Float64}
-
 end
-
 
 
 function MeshVertex(X::Vector{T}) where T <: Real
@@ -46,10 +40,8 @@ function MeshVertex(X::Vector{T}) where T <: Real
 		throw(ArgumentError("Location must be a 2D location"));
 	end
 
-
 	point::MeshVertex = MeshVertex(X,X,-1,-1,false,false,[],[]);
 	return point
-
 end
 
 
@@ -77,7 +69,6 @@ mutable struct MeshFace <: AbstractFace
 	#Now we need vectors of this nodes faces and vertices
 	edges::Vector{AbstractEdge}
 	vertices::Vector{AbstractVertex}
-
 end
 
 function MeshFace(one::MeshVertex,two::MeshVertex,three::MeshVertex)
@@ -135,8 +126,9 @@ function MeshEdge(one::MeshVertex,two::MeshVertex)
 end
 
 
-
 #Lets define an Lagrangian Mesh
+#And give it some constructors
+
 mutable struct LagMesh <: AbstractNetwork
 	#Number of vertices in the immersed network
 	Mv::Int
@@ -186,10 +178,9 @@ function LagMesh(points::Vector{Vector{Float64}},triangles::Vector{Vector{S wher
 
 	#We create the mesh with all the vertices, faces & edges
 	mesh::LagMesh = LagMesh(Mv,Mf,Me,vertices,faces,edges);
-	#And then 'initialize' it to give everyone pointers to their friends
+	#And then 'connect' it to give everyone pointers to their friends
 	ConnectMesh!(mesh);
 	return mesh
-
 end
 
 
@@ -197,18 +188,16 @@ end
 #Faces have both edges and vertices. 
 #Now I need to write the function which connects "up" the chain. 
 
-
 function ConnectMesh!(mymesh::LagMesh)
 
-	#Lets run through all of the edges and give their vertices pointers home
+	#Lets run through all of the edges and give their vertices pointers 'home'
 	for i = 1:mymesh.Me
 		one,two = mymesh.edges[i].vertices
 		push!(one.edges,mymesh.edges[i])
 		push!(two.edges,mymesh.edges[i])
 	end
 
-	#Now we run through all the faces and give their edges and vertices pointers home. 
-	#We also set their 
+	#Now we run through all the faces and give their edges AND vertices pointers 'home'.' 
 	for i = 1:mymesh.Mf
 		for j = 1:3
 			point = mymesh.faces[i].vertices[j]
@@ -221,7 +210,7 @@ function ConnectMesh!(mymesh::LagMesh)
 		end
 	end
 
-	#Finally, we should run through the edges to identify boundaries. 
+	#Finally, we should run through the edges to identify boundaries
 	for i = 1:mymesh.Me
 		edge = mymesh.edges[i]
 		if length(edge.faces) == 1
@@ -231,4 +220,5 @@ function ConnectMesh!(mymesh::LagMesh)
 		end
 	end
 end
+
 
