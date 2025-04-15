@@ -1,4 +1,5 @@
 import LinearAlgebra
+import StaticArrays
 
 abstract type AbstractVertex end
 abstract type AbstractEdge end
@@ -58,9 +59,9 @@ mutable struct MeshFace <: AbstractFace
 	ref_area::Float64
 
 	#Matrices which hold information regarding reference and current configuration
-	Smat::Matrix{Float64}
-	Sinv::Matrix{Float64}
-	Xmat::Matrix{Float64}
+	Smat::StaticArrays.SMatrix{2,2,Float64}
+	Sinv::StaticArrays.SMatrix{2,2,Float64}
+	Xmat::StaticArrays.SMatrix{2,2,Float64}
 
 
 	#Booleans that indicate if this is a boundary face
