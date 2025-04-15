@@ -40,7 +40,7 @@ function MeshVertex(X::Vector{T}) where T <: Real
 		throw(ArgumentError("Location must be a 2D location"));
 	end
 
-	point::MeshVertex = MeshVertex(X,X,-1,-1,false,false,[],[]);
+	point::MeshVertex = MeshVertex(X,X,0,0,false,false,[],[]);
 	return point
 end
 
@@ -201,8 +201,8 @@ function ConnectMesh!(mymesh::LagMesh)
 	for i = 1:mymesh.Mf
 		for j = 1:3
 			point = mymesh.faces[i].vertices[j]
-			point.area = mymesh.faces[i].area/3
-			point.ref_area = mymesh.faces[i].ref_area/3
+			point.area += mymesh.faces[i].area/3
+			point.ref_area += mymesh.faces[i].ref_area/3
 			push!(point.faces,mymesh.faces[i])
 
 			edge = mymesh.faces[i].edges[j]
