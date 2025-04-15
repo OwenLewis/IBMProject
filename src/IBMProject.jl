@@ -7,7 +7,7 @@ include("DiffOpers.jl")
 include("ImmersedNetwork.jl")
 
 # # Network Functions
-# include("NetworkOpers.jl")
+include("NetworkOpers.jl")
 
 
 # # PostProcessing
@@ -43,6 +43,9 @@ export MeshVertex,
        MeshEdge,
        MeshFace, 
        LagMesh
+
+#NetworkOpers.jl
+export ReadNetwork
 
 end # module
 

@@ -78,7 +78,7 @@ function MeshFace(one::MeshVertex,two::MeshVertex,three::MeshVertex)
 				three.coords[1]*(one.coords[2] - two.coords[2]))/2
 
 	Smat = hcat(two.ref_coords .- one.ref_coords,three.ref_coords .- one.ref_coords);
-	Xmat = hcat(two.coords .- one.coords,three.coords .- one.coords);;
+	Xmat = hcat(two.coords .- one.coords,three.coords .- one.coords);
 	Sinv = LinearAlgebra.inv(Smat);
 
 	edge1 = MeshEdge(one,two)
@@ -119,7 +119,7 @@ mutable struct MeshEdge <: AbstractEdge
 end
 
 function MeshEdge(one::MeshVertex,two::MeshVertex)
-	center = (one.coords + two.coords)/2
+	center = (one.coords + two.coords)./2
 
 	edge::MeshEdge = MeshEdge(center,center,false,[one,two],[])
 	return edge
