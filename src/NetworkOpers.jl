@@ -14,6 +14,7 @@ function ReadNetwork(filename::String)
 	readfaces = Int.(read(fid,"t"));
 	faces = [readfaces[i,:] for i in 1:size(readfaces,1)];
 	mymesh = LagMesh(points,faces);
+	close(fid)
 
 	return mymesh
 end
