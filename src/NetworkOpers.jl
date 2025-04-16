@@ -58,7 +58,7 @@ end
 # This function moves a network by a given velocity field. 
 # It comes in two types
 
-function MoveNetwork!(mymesh::IBMProject.LagMesh,x::Vector{T},y::Vector{T}) where T <: Real
+function MoveNetwork!(mymesh::LagMesh,x::Vector{T},y::Vector{T}) where T <: Real
 	# First lets have some sanity checks to make sure that 
 	if ~(size(x) == size(y))
 		throw(ArgumentError("Size of displacements does not match"));

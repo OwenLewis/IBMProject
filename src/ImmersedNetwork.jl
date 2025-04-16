@@ -172,7 +172,7 @@ function LagMesh(points::Vector{Vector{Float64}},triangles::Vector{Vector{S wher
 			#If the edge hasn't been seen before, add it to the array in our mesh
 			if any(x -> x.center == newedge.center,edges) == false
 				push!(edges,newedge);
-				println("We found a new edge")
+				# println("We found a new edge")
 			end
 		end
 	end
