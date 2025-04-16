@@ -1,47 +1,26 @@
-include("../src/IBMProject.jl")
-using HDF5
+
+using IBMProject
 using GLMakie
 
 flag = 2
 
 if flag == 0
-	fid = h5open("smallgrid.h5")
-	readpoints = read(fid,"p");
-	points = [readpoints[i,:] for i in 1:size(readpoints,1)];
-	println("We read in: ", size(points,1)," points")
-
-	readfaces = Int.(read(fid,"t"));
-	faces = [readfaces[i,:] for i in 1:size(readfaces,1)];
-	println("We read in: ", size(faces,1)," faces")
+	mymesh = ReadNetwork("smallgrid.h5")
 elseif flag == 1
-	fid = h5open("medgrid.h5");
-	readpoints = read(fid,"p");
-	points = [readpoints[i,:] for i in 1:size(readpoints,1)];
-	println("We read in: ", size(points,1)," points")
-
-	readfaces = Int.(read(fid,"t"));
-	faces = [readfaces[i,:] for i in 1:size(readfaces,1)];
-	println("We read in: ", size(faces,1)," faces")
-
+	mymesh = ReadNetwork("medgrid.h5");
 elseif flag == 2
-	fid = h5open("largegrid.h5")
-	readpoints = read(fid,"p");
-	points = [readpoints[i,:] for i in 1:size(readpoints,1)];
-	println("We read in: ", size(points,1)," points")
-
-	readfaces = Int.(read(fid,"t"));
-	faces = [readfaces[i,:] for i in 1:size(readfaces,1)];
-	println("We read in: ", size(faces,1)," faces")
+	mymesh = ReadNetwork("largegrid.h5")
 else
 	points = [[0.0,0.0],[1.0,0.0],[0.0,1.0]]
 	faces = [[1,2,3]]
+	mymesh = LagMesh(points,faces);
 end
 
 
 
 
 
-mymesh = IBMProject.LagMesh(points,faces);
+
 
 println("Grid Constructed")
 
