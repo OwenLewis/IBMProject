@@ -2,7 +2,7 @@
 using IBMProject
 using GLMakie
 
-flag = 2
+flag = 1
 
 if flag == 0
 	mymesh = ReadNetwork("smallgrid.h5")
@@ -30,8 +30,16 @@ println("	",mymesh.Me," edges,")
 println("	",mymesh.Mf," faces.")
 
 
-U = [x.coords[1]*0.2 for x in mymesh.vertices];
-V = [x.coords[2]*0.2 for x in mymesh.vertices];
+defflag = 2
+
+if defflag == 1
+	U = [x.coords[1]*0.2 for x in mymesh.vertices];
+	V = [x.coords[2]*0.2 for x in mymesh.vertices];
+elseif defflag == 2
+	U = [x.coords[2]*0.2 for x in mymesh.vertices];
+	V = [x.coords[1]*0.0 for x in mymesh.vertices];
+end
+
 
 
 println("Moving the grid now")

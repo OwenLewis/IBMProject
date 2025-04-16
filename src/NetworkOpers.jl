@@ -95,6 +95,9 @@ end
 
 
 function ElasticForceCalc(mymesh::LagMesh,mu::T,kappa::T) where T <: Real
+	#This calculates the elastic force in the LagMesh due to its current configuration
+	# mu is the shear modulus 
+	# kappa is the bulk modulus (elastic resistance to area increases)
 	ForceDensity = [[0.0,0.0] for i in 1:mymesh.Mv]
 	A = StaticArrays.SMatrix{2,2,Float64}(0,0,0,0)
 
