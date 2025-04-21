@@ -61,7 +61,7 @@ end
 function MoveNetwork!(mymesh::LagMesh,x::Vector{T},y::Vector{T}) where T <: Real
 	# First lets have some sanity checks to make sure that 
 	if ~(size(x) == size(y))
-		throw(ArgumentError("Size of displacements does not match"));
+		throw(ArgumentError("Size of displacements do not match"));
 	end
 	if ~(length(x) == mymesh.Mv)
 		throw(ArgumentError("Size of displacements does not match mesh vertices"));
