@@ -4,6 +4,13 @@ abstract type AbstractGrid end
 abstract type AbstractGridFunction end
 
 #Lets define an Eulerian Grid
+#NOTE ON GRID IDENTITY: the operators in DiffOpers.jl check that data and operator
+#share a grid using `===`. For this struct that compares the numeric fields by value
+#but X and Y by object identity, so two grids built by separate calls to
+#PeriodicEulGrid(...) with identical arguments are NOT `===` (and not `==` either,
+#since `==` falls back to `===`). Build one grid and reuse that object everywhere.
+#If that ever becomes a nuisance, define a SameGrid(g1,g2) helper comparing
+#Lx,Ly,Ux,Uy,Nx,Ny (the rest is derived) and use it in the Apply*Operator checks.
 struct PeriodicEulGrid <: AbstractGrid
 	Lx::Float64
 	Ly::Float64
@@ -106,34 +113,24 @@ function ScalarGridData(mygrid::AbstractGrid)
 	return griddata
 end
 
-#If data is specified, check size
+#If data is specified, convert type
 function ScalarGridData(ux::Matrix{T},mygrid::AbstractGrid) where T<:Real
-	if ~(size(ux) == size(mygrid.X))
-		throw(ArgumentError(ux,"Size of input does not match grid size"));
-	else
-		griddata::ScalarGridData = ScalarGridData(ux,mygrid);
-		return griddata
-	end
+	griddata::ScalarGridData = ScalarGridData(convert(Matrix{Float64}, ux),mygrid)
+	return griddata
 end
 
 #If no data is specified, initialize with zeros
 function VectorGridData(mygrid::AbstractGrid)
 	U = zeros(mygrid.Nx,mygrid.Ny);
-	V = zeros(mygrid.Nx,mygrid.NY)
-	griddata::ScalarGridData = VectorGridData(U,V,mygrid);
+	V = zeros(mygrid.Nx,mygrid.Ny)
+	griddata::VectorGridData = VectorGridData(U,V,mygrid);
 	return griddata
 end
 
-#If data is specified, check size
-function VectorGridData(ux::Matrix{T},uy::Matrix{T},mygrid::AbstractGrid) where T<:Real
-	if ~(size(ux) == size(mygrid.X))
-		throw(ArgumentError(ux,"Size of input does not match grid size"));
-	elseif ~(size(uy) == size(mygrid.X))
-		throw(ArgumentError("Size of second input does not match grid size"));
-	else
-		griddata::ScalarGridData = VectorGridData(ux,uy,mygrid);
-		return griddata
-	end
+#If data is specified, convert type
+function VectorGridData(ux::Matrix{T},uy::Matrix{S},mygrid::AbstractGrid) where {T<:Real, S<:Real}
+	griddata::VectorGridData = VectorGridData(convert(Matrix{Float64}, ux),convert(Matrix{Float64}, uy),mygrid);
+	return griddata
 end
 
 
