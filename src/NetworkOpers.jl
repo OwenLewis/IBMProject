@@ -25,40 +25,64 @@ end
 # The assumption is that all of the point coords have been updated so that 
 # They are no longer equal to the ref_coords
 function DefUpdate!(mymesh::LagMesh)
-	[x.area = 0.0 for x in mymesh.vertices];
+	for v in mymesh.vertices
+		v.area = 0.0;
+	end
+
+
+	#Some Auxilliar quantities to check for inverted faces
+	ninverted = 0;
+	firstbad = 0;
+	worstJ = Inf;
+
 	#First we loop through the faces
 	for i in 1:mymesh.Mf
 		#Who are this face's vertices?
-		one,two,three = mymesh.faces[i].vertices;
+		vert1,vert2,vert3 = mymesh.faces[i].vertices;
 		#Update this face's displacement tensor
-		mymesh.faces[i].Xmat = hcat(two.coords .- one.coords,three.coords .- one.coords);
+		mymesh.faces[i].Xmat = TriangleEdgeMatrix(vert1.coords, vert2.coords, vert3.coords);
 		#Update this face's center
-		mymesh.faces[i].centroid = (one.coords + two.coords + three.coords)/3
+		mymesh.faces[i].centroid = TriangleCentroid(vert1.coords,vert2.coords,vert3.coords);
 		#Calculate this face's area
-		area = abs(one.coords[1]*(two.coords[2] - three.coords[2]) + 
-					two.coords[1]*(three.coords[2] - one.coords[2]) + 
-					three.coords[1]*(one.coords[2] - two.coords[2]))/2;
+		area = TriangleArea(vert1.coords,vert2.coords,vert3.coords);
 		mymesh.faces[i].area = area;
 		# And give 1/3 to every one of the vertices
-		one.area += area/3;
-		two.area += area/3;
-		three.area += area/3;
+		vert1.area += area/3;
+		vert2.area += area/3;
+		vert3.area += area/3;
+
+		#Now lets check to see if the face has been inverted. The area
+		#Calculation would have squashed this with abs() call. 
+		J = LinearAlgebra.det(mymesh.faces[i].Xmat) / LinearAlgebra.det(mymesh.faces[i].Smat)
+		if J <= 0
+			ninverted += 1;
+			if firstbad == 0
+				firstbad = i
+			end
+			worstJ = min(worstJ, J);
+		end
+
+	end
+
+	#Throw warnings if any face was inverted
+	if ninverted > 0
+		@warn "Mesh has inverted triangles" count=ninverted of=mymesh.Mf first_face=firstbad min_J=worstJ maxlog=10
 	end
 
 	#Finally we loop through the edges
 	for i in 1:mymesh.Me
 		#Who are this edge's vertices?
-		one,two = mymesh.edges[i].vertices;
+		vert1,vert2 = mymesh.edges[i].vertices;
 		#Calcualte this edge's center point and assign. 
-		mymesh.edges[i].center = (one.coords + two.coords)./2
+		mymesh.edges[i].center = Midpoint(vert1.coords,vert2.coords);
 	end
 end
 
 
 # This function moves a network by a given velocity field. 
-# It comes in two types
-
-function MoveNetwork!(mymesh::LagMesh,x::Vector{T},y::Vector{T}) where T <: Real
+# It comes in three types
+# Displacements as separate arrays
+function MoveNetwork!(mymesh::LagMesh,x::Vector{<: Real},y::Vector{<: Real})
 	# First lets have some sanity checks to make sure that 
 	if ~(size(x) == size(y))
 		throw(ArgumentError("Size of displacements do not match"));
@@ -69,18 +93,33 @@ function MoveNetwork!(mymesh::LagMesh,x::Vector{T},y::Vector{T}) where T <: Real
 
 	# Update the coordinates of all the veritices 
 	for i = 1:mymesh.Mv
-		mymesh.vertices[i].coords += [x[i],y[i]];
+		mymesh.vertices[i].coords += Point2(x[i],y[i]);
 	end
 	# Then update the mesh
 	DefUpdate!(mymesh);
 end
 
-
-function MoveNetwork!(mymesh::LagMesh,X::Vector{Vector{T}}) where T <: Real
+# Displacements as a vector of vectors
+function MoveNetwork!(mymesh::LagMesh,X::Vector{<: Vector{<: Real}})
 	# First lets have some sanity checks to make sure that 
 	if ~(length(X[1]) == 2)
 		throw(ArgumentError("Size of displacements is not appropriate"));
 	end
+	if ~(length(X) == mymesh.Mv)
+		throw(ArgumentError("Size of displacements does not match mesh vertices"));
+	end
+
+	# Update the coordinates of all the veritices 
+	for i = 1:mymesh.Mv
+		mymesh.vertices[i].coords += Point2(X[i]);
+	end
+	# Then update the mesh
+	DefUpdate!(mymesh);
+end
+
+# Displacements as a vector of 2D vectors
+function MoveNetwork!(mymesh::LagMesh,X::Vector{<:StaticArrays.SVector{2,<:Real}})
+	# First lets have some sanity checks to make sure that 
 	if ~(length(X) == mymesh.Mv)
 		throw(ArgumentError("Size of displacements does not match mesh vertices"));
 	end
@@ -94,24 +133,22 @@ function MoveNetwork!(mymesh::LagMesh,X::Vector{Vector{T}}) where T <: Real
 end
 
 
-function ElasticForceCalc(mymesh::LagMesh,mu::T,kappa::T) where T <: Real
+function ElasticForceCalc(mymesh::LagMesh,mu::T1,kappa::T2) where {T1 <: Real,T2 <: Real}
 	#This calculates the elastic force in the LagMesh due to its current configuration
 	# mu is the shear modulus 
 	# kappa is the bulk modulus (elastic resistance to area increases)
-	ForceDensity = [[0.0,0.0] for i in 1:mymesh.Mv]
-	A = StaticArrays.SMatrix{2,2,Float64}(0,0,0,0)
+	# Allocate an array of 2D points, currently everyone is set to zero.
+	ForceDensity = zeros(Point2, mymesh.Mv)
+	# A = StaticArrays.SMatrix{2,2,Float64}(0,0,0,0)
 
 	for i = 1:mymesh.Mf
-		# I'm indexing the points zero, one, two to correspond with Strychalski, Copos, et al
-		# I'm only doing that here. 
-		zero,one,two = mymesh.faces[i].vertices;
-		ind0 = findfirst(x -> x==zero,mymesh.vertices);
-		ind1 = findfirst(x -> x==one,mymesh.vertices);
-		ind2 = findfirst(x -> x==two,mymesh.vertices);
+		
+		#Grab reference to the face we're on. 
+		face = mymesh.faces[i]
 
 		#Now we calculate the deformation gradient tensor
-		S = mymesh.faces[i].Smat;
-		A = mymesh.faces[i].Xmat*mymesh.faces[i].Sinv;
+		S = face.Smat;
+		A = face.Xmat*face.Sinv;
 		#And its associated quantities
 		Ainv = LinearAlgebra.inv(A);
 		AT = LinearAlgebra.transpose(A);
@@ -125,18 +162,21 @@ function ElasticForceCalc(mymesh::LagMesh,mu::T,kappa::T) where T <: Real
 
 
 		#Now we loop through the 3 points. Each has its own dA/dX
-		#Point zero
-		dAdX = StaticArrays.SVector{2,Float64}((S[2,1]-S[2,2])/Delta,(S[1,2]-S[1,1])/Delta)
-		Force = -(EnergyGradient*dAdX).*mymesh.faces[i].ref_area;
-		ForceDensity[ind0] += Force./zero.ref_area
-		#Point one
-		dAdX = StaticArrays.SVector{2,Float64}(S[2,2]/Delta,-S[1,2]/Delta)
-		Force = -(EnergyGradient*dAdX).*mymesh.faces[i].ref_area;
-		ForceDensity[ind1] += Force./one.ref_area
-		#Point two
-		dAdX = StaticArrays.SVector{2,Float64}(-S[2,1]/Delta,S[1,1]/Delta)
-		Force = -(EnergyGradient*dAdX).*mymesh.faces[i].ref_area;
-		ForceDensity[ind2] += Force./two.ref_area
+		#The calculations are what SHOULD appear in Strychalski, Copos, et al. 
+		#One day I need to double check these things. 
+		dAdX = (StaticArrays.SVector{2,Float64}((S[2,1]-S[2,2])/Delta,(S[1,2]-S[1,1])/Delta),
+				StaticArrays.SVector{2,Float64}(S[2,2]/Delta,-S[1,2]/Delta),
+				StaticArrays.SVector{2,Float64}(-S[2,1]/Delta,S[1,1]/Delta));
+
+		#Loop through the vertices around this face. 
+		#Multiply force density by face area, and then divide by vertex area
+		for (k,vertex) in enumerate(face.vertices)
+ 			Force = -(EnergyGradient*dAdX[k]).*face.ref_area;
+ 			ForceDensity[vertex.id] += Force./vertex.ref_area;
+
+
+		end
+
 
 	end
 
