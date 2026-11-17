@@ -1,13 +1,15 @@
 module IBMProject
 
 # Custom types
+include("LagGeometry.jl")
 include("EulGrid.jl")
 include("ImmersedBnd.jl")
 include("DiffOpers.jl")
 include("ImmersedNetwork.jl")
 
-# # Network Functions
+# # Immersed Bnd & Network Functions
 include("NetworkOpers.jl")
+include("BndOpers.jl")
 
 
 # # PostProcessing
@@ -15,7 +17,7 @@ include("NetworkOpers.jl")
 # include("ErrorAnalysis.jl")
 
 
-# # EulGrid.jl
+# EulGrid.jl
 export PeriodicEulGrid,
        ScalarGridData,
        VectorGridData,
@@ -27,15 +29,23 @@ export PeriodicLagBnd,
        ScalarBndData,
        ScalarBndSpread,
        ScalarBndInterp,
+       VectorBndData,
        BndIntegral
 
 # DiffOpers.jl
 export SimplePeriodicDifferentialOperator,
        GradientPeriodicDifferentialOperator,
        DivergencePeriodicDifferentialOperator,
+       InverseSimplePeriodicDifferentialOperator,
+       MakePeriodicGradient,
+       MakePeriodicDivergence,
+       MakePeriodicLaplacian,
+       MakePeriodicHelmholtz,
+       InvertOperator,
        ApplySimpleOperator,
        ApplyDivergenceOperator,
-       ApplyGradientOperator
+       ApplyGradientOperator,
+       ApplyInverseOperator
 
 
 #ImmersedNetwork.jl
@@ -45,7 +55,13 @@ export MeshVertex,
        LagMesh
 
 #NetworkOpers.jl
-export ReadNetwork
+export ReadNetwork,
+       MoveNetwork!,
+       ElasticForceCalc
+
+# BndOpers.jl
+export ReadBnd,
+       MoveBnd!
 
 end # module
 
