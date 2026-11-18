@@ -1,4 +1,6 @@
-# Code to be loaded into IBMProject
+# Code pertaining to construction, application, inversion, and algebra 
+# of differential operators defined on the Eulerian Grid. Can be used to 
+# define and solve differential equations such as Stokes, Helmholtz, etc. 
 import FFTW
 import LinearAlgebra
 

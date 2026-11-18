@@ -1,4 +1,5 @@
-# Code to be loaded into IBMProject
+# Code related to the construction of Eulerian grids
+# and data types to store functions on said grids. 
 
 abstract type AbstractGrid end
 abstract type AbstractGridFunction end
