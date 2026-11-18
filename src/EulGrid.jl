@@ -1,5 +1,8 @@
 # Code related to the construction of Eulerian grids
-# and data types to store functions on said grids. 
+# and data types to store functions on said grids.
+
+import StaticArrays 
+import LinearAlgebra
 
 abstract type AbstractGrid end
 abstract type AbstractGridFunction end
@@ -133,6 +136,139 @@ function VectorGridData(ux::Matrix{T},uy::Matrix{S},mygrid::AbstractGrid) where 
 	griddata::VectorGridData = VectorGridData(convert(Matrix{Float64}, ux),convert(Matrix{Float64}, uy),mygrid);
 	return griddata
 end
+
+#################################################################
+#  Wrappers to accomplish Matrix{Point2} <---> VectorGridData   #
+#################################################################
+
+#Get a vector field from a matrix of Point2
+function VectorGridData(M::Matrix{<:StaticArrays.SVector{2,<:Real}},mygrid::AbstractGrid)
+	return VectorGridData(first.(M),last.(M),mygrid)
+end
+
+# Get a matrix of Point2 from a vector field
+function Point2Matrix(v::VectorGridData) 
+	return Point2.(v.U,v.V);
+end
+
+# Some helpful methods to get/assign grid data values at various indices
+# Not sure if these will ever be helpful, but they aren't likely to hurt
+
+# Return v[i,j] at one cell as a Point2
+Base.getindex(v::VectorGridData,i::Integer,j::Integer) = Point2(v.U[i,j],v.V[i,j])
+
+# Assign v[i,j] = p using a 2D vector at one cell
+function Base.setindex!(v::VectorGridData,p::StaticArrays.SVector{2,<:Real},i::Integer,j::Integer)
+	v.U[i,j] = p[1];
+	v.V[i,j] = p[2];
+	return v
+end
+
+# Accumulate into one cell; this is what spreading needs 
+#(a plain v[i,j] += f also works through the two methods above, but allocates less this way)
+function AddAt!(v::VectorGridData,i::Integer,j::Integer,f::StaticArrays.SVector{2,<:Real})
+	v.U[i,j] += f[1];
+	v.V[i,j] += f[2];
+	return v
+end
+
+###############################################
+#      Lets define some grid data algebra     #
+###############################################
+
+# Adding & subtracting scalar fields
+function Base.:+(a::ScalarGridData,b::ScalarGridData)
+	CheckSameGrid(a,b,"added")
+	return ScalarGridData(a.U .+ b.U,a.grid)
+end
+function Base.:-(a::ScalarGridData,b::ScalarGridData)
+	CheckSameGrid(a,b,"subtracted")
+	return ScalarGridData(a.U .- b.U,a.grid)
+end
+
+#Adding and subtracting vector fields
+function Base.:+(a::VectorGridData,b::VectorGridData)
+	CheckSameGrid(a,b,"added")
+	return VectorGridData(a.U .+ b.U,a.V .+ b.V,a.grid)
+end
+function Base.:-(a::VectorGridData,b::VectorGridData)
+	CheckSameGrid(a,b,"subtracted")
+	return VectorGridData(a.U .- b.U,a.V .- b.V,a.grid)
+end
+
+# Scalar operations on scalar fields
+function Base.:-(a::ScalarGridData) 
+	return ScalarGridData(-a.U,a.grid);
+end
+function Base.:*(c::Real,a::ScalarGridData) 
+	return ScalarGridData(c.*a.U,a.grid);
+end
+function Base.:*(a::ScalarGridData,c::Real)
+	return c*a;
+end
+
+#Scalar operations on vector fields
+function Base.:-(a::VectorGridData)
+	return VectorGridData(-a.U,-a.V,a.grid);
+end
+function  Base.:*(c::Real,a::VectorGridData) 
+	return VectorGridData(c.*a.U,c.*a.V,a.grid);
+end
+function Base.:*(a::VectorGridData,c::Real) 
+	return c*a;
+end
+
+#Pointwise mult of scalar/vector fields
+function Base.:*(a::ScalarGridData,b::ScalarGridData)
+	CheckSameGrid(a,b,"multiplied")
+	return ScalarGridData(a.U.*b.U,a.grid);
+end
+function Base.:*(a::ScalarGridData,b::VectorGridData) 
+	CheckSameGrid(a,b,"multiplied")
+	return VectorGridData(a.U.*b.U,a.U.*b.V,a.grid);
+end
+function Base.:*(b::VectorGridData,a::ScalarGridData)
+	CheckSameGrid(a,b,"multiplied")
+	return a*b;
+end
+
+#Pointwise products of two vector fields
+#This is a dot-product. It returns a scalar field.
+function LinearAlgebra.dot(a::VectorGridData,b::VectorGridData)
+	CheckSameGrid(a,b,"dotted")
+	return ScalarGridData(a.U.*b.U + a.V.*b.V,a.grid);
+end
+#This is a 2D cross product. It currently returns a scalar field
+#Things will need to change substantially if we move to 3D
+function LinearAlgebra.cross(a::VectorGridData,b::VectorGridData)
+	CheckSameGrid(a,b,"crossed")
+	return ScalarGridData(a.U.*b.V - a.V.*b.U,a.grid);
+end
+
+
+
+# Helper Function to return a boolean determining if two grid functions are on the same grid
+function CheckSameGrid(A::ScalarGridData,B::ScalarGridData,what::String)
+	if ~(A.grid === B.grid)
+		throw(ArgumentError("Scalar fields to be $what are on different grids"));
+	end
+end
+function CheckSameGrid(A::ScalarGridData,B::VectorGridData,what::String)
+	if ~(A.grid === B.grid)
+		throw(ArgumentError("Scalar field and vector field to be $what are on different grids"));
+	end
+end
+function CheckSameGrid(A::VectorGridData,B::ScalarGridData,what::String)
+	if ~(A.grid === B.grid)
+		throw(ArgumentError("Vector field and scalar field to be $what are on different grids"));
+	end
+end
+function CheckSameGrid(A::VectorGridData,B::VectorGridData,what::String)
+	if ~(A.grid === B.grid)
+		throw(ArgumentError("Vector fields to be $what are on different grids"));
+	end
+end
+
 
 
 ###########################################################
