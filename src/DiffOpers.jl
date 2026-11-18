@@ -1,5 +1,6 @@
 # Code to be loaded into IBMProject
 import FFTW
+import LinearAlgebra
 
 abstract type AbstractDifferentialOperator end
 
@@ -27,13 +28,98 @@ struct DivergencePeriodicDifferentialOperator <: AbstractDifferentialOperator
 	EigenvaluesV::Matrix{ComplexF64}
 end
 
-
 struct InverseSimplePeriodicDifferentialOperator <: AbstractDifferentialOperator
 	grid::PeriodicEulGrid
 	InvEigenvalues::Matrix{ComplexF64}
 	dropped::BitMatrix 
 end
 
+
+###############################################
+#         Writing my operator algebra         #
+###############################################
+#These methods let me construct new operators from exiting ones via addition, 
+#Scalar multiplication, and composition. 
+
+## Simple Operators first
+## Scalar Multiplication (from either side)
+function Base.:*(a::Real,L::SimplePeriodicDifferentialOperator)
+	return SimplePeriodicDifferentialOperator(L.grid,a.*L.Eigenvalues)
+end
+function Base.:*(L::SimplePeriodicDifferentialOperator,a::Real)
+	return SimplePeriodicDifferentialOperator(L.grid,a.*L.Eigenvalues)
+end
+
+## Adddition
+function Base.:+(A::SimplePeriodicDifferentialOperator,B::SimplePeriodicDifferentialOperator)
+	CheckSameGrid(A,B,"added")
+	return SimplePeriodicDifferentialOperator(A.grid,A.Eigenvalues.+B.Eigenvalues);
+end
+
+## Subtraction
+function Base.:-(A::SimplePeriodicDifferentialOperator,B::SimplePeriodicDifferentialOperator)
+	CheckSameGrid(A,B,"subtracted")
+	return SimplePeriodicDifferentialOperator(A.grid,A.Eigenvalues.-B.Eigenvalues);
+end
+## Unary Minus
+function Base.:-(A::SimplePeriodicDifferentialOperator) 
+	return SimplePeriodicDifferentialOperator(A.grid, -A.Eigenvalues);
+end
+
+# Identity shifts, which could be useful for IBDL & IBSL. 
+# Works for any REAL multiple of the identity
+# This just avoids having to create an operator who's e-values are all a constant. 
+function Base.:+(A::SimplePeriodicDifferentialOperator,J::LinearAlgebra.UniformScaling{<:Real})
+	# λ is the field that stores the scalar multiple of the identity operator. 
+	return SimplePeriodicDifferentialOperator(A.grid,A.Eigenvalues .+ J.λ)
+end
+function Base.:+(J::LinearAlgebra.UniformScaling{<:Real},A::SimplePeriodicDifferentialOperator)
+	return A + J
+end
+function Base.:-(A::SimplePeriodicDifferentialOperator,J::LinearAlgebra.UniformScaling{<:Real})
+	return A + (-J)
+end
+function Base.:-(J::LinearAlgebra.UniformScaling{<:Real},A::SimplePeriodicDifferentialOperator)
+	return J + (-A)
+end
+
+# Now for operator composition. 
+# There are only a few valid combinations
+
+# Simple operators just get their e-values multiplied. 
+function Base.:*(A::SimplePeriodicDifferentialOperator,B::SimplePeriodicDifferentialOperator)
+	CheckSameGrid(A,B,"composed");
+	return SimplePeriodicDifferentialOperator(A.grid,A.Eigenvalues.*B.Eigenvalues)
+end
+
+# This is a simple operator, composed with a gradient operator
+# Result is a gradient operator
+function Base.:*(G::GradientPeriodicDifferentialOperator,A::SimplePeriodicDifferentialOperator)
+	CheckSameGrid(G,A,"composed")
+	return GradientPeriodicDifferentialOperator(G.grid,G.EigenvaluesU.*A.Eigenvalues,G.EigenvaluesV.*A.Eigenvalues);
+end
+
+# Here we have a divergence operator, composed with a simple one
+# Result is a divergence operator
+function Base.:*(A::SimplePeriodicDifferentialOperator,D::DivergencePeriodicDifferentialOperator)
+	CheckSameGrid(A,D,"composed");
+	return DivergencePeriodicDifferentialOperator(A.grid,A.Eigenvalues.*D.EigenvaluesU,A.Eigenvalues.*D.EigenvaluesV);
+end
+
+# Here we have gradient, composed with divergence (grid laplacian)
+# The result is a simple. 
+function Base.:*(D::DivergencePeriodicDifferentialOperator,G::GradientPeriodicDifferentialOperator)
+	CheckSameGrid(D,G,"composed")
+	return SimplePeriodicDifferentialOperator(D.grid,D.EigenvaluesU.*G.EigenvaluesU+D.EigenvaluesV.*G.EigenvaluesV);
+end
+
+#Finally we have exponentiation 
+function Base.:^(A::SimplePeriodicDifferentialOperator,n::Integer)
+	if n < 1
+		throw(ArgumentError("Power must be positive integer (use InvertOperator for inverse powers)."))
+	end
+	return SimplePeriodicDifferentialOperator(A.grid,A.Eigenvalues.^n);
+end
 
 ###############################################
 #     Now for some construction functions     #
@@ -68,7 +154,7 @@ function MakePeriodicHelmholtz(mygrid::PeriodicEulGrid, a::Real, b::Real)
 		throw(ArgumentError("a and b cannot both be zero"));
 	end
 	Lap = MakePeriodicLaplacian(mygrid);
-	return SimplePeriodicDifferentialOperator(mygrid, a .- b .* Lap.Eigenvalues);
+	return a*LinearAlgebra.I - b*Lap;
 end
 
 # Now the operators that change the rank of data. They don't technically store different data
@@ -119,20 +205,16 @@ end
 # Making coposition operator div(grad(.)), this is a sort of Laplacian, but 
 # built from the zeroed first-derivative eigenvalues (not the true Laplacian).
 # Zero at k=0 and, on even grids, on the Nyquist lines; InvertOperator drops those modes.
+# Going to use the previously defined operator algebra to do this. 
 function MakePeriodicDivGrad(D::DivergencePeriodicDifferentialOperator,G::GradientPeriodicDifferentialOperator)
-	if ~(D.grid === G.grid)
-		throw(ArgumentError("Divergence and gradient operators are on different grids"));
-	end
-	eigs = D.EigenvaluesU.*G.EigenvaluesU .+ D.EigenvaluesV.*G.EigenvaluesV;
-	return SimplePeriodicDifferentialOperator(D.grid, eigs);
+	return D*G;
 end
 
 #Can be made directly from the grid, if D & G don't already exist. 
 function MakePeriodicDivGrad(mygrid::PeriodicEulGrid)
 	D = MakePeriodicDivergence(mygrid);
 	G = MakePeriodicGradient(mygrid);
-	eigs = D.EigenvaluesU.*G.EigenvaluesU .+ D.EigenvaluesV.*G.EigenvaluesV;
-	return SimplePeriodicDifferentialOperator(mygrid, eigs);
+	return D*G;
 end
 
 
@@ -359,5 +441,15 @@ function CheckDroppedModes(fhat, myoperator::InverseSimplePeriodicDifferentialOp
 	lost  = sqrt(sum(abs2, fhat[myoperator.dropped]))
 	if lost > tol*total
 		@warn "Right-hand side has content in modes the operator cannot invert (for Poisson: a nonzero mean). That content is discarded." relative_size=lost/total maxlog=10
+	end
+end
+
+
+
+
+# Helper Function to return a boolean determining if two operators act on the same grid
+function CheckSameGrid(A::AbstractDifferentialOperator,B::AbstractDifferentialOperator,what::String)
+	if ~(A.grid === B.grid)
+		throw(ArgumentError("Operators to be $what are on different grids"));
 	end
 end
