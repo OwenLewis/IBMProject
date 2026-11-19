@@ -51,6 +51,9 @@ end
 function Base.:*(L::SimplePeriodicDifferentialOperator,a::Real)
 	return SimplePeriodicDifferentialOperator(L.grid,a.*L.Eigenvalues)
 end
+function Base.:/(L::SimplePeriodicDifferentialOperator,a::Real)
+	return SimplePeriodicDifferentialOperator(L.grid,L.Eigenvalues./a)
+end
 
 ## Adddition
 function Base.:+(A::SimplePeriodicDifferentialOperator,B::SimplePeriodicDifferentialOperator)

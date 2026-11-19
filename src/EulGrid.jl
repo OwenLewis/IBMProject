@@ -137,6 +137,14 @@ function VectorGridData(ux::Matrix{T},uy::Matrix{S},mygrid::AbstractGrid) where 
 	return griddata
 end
 
+# Create a vector field using two Scalar fields
+function VectorGridData(a::ScalarGridData,b::ScalarGridData)
+	CheckSameGrid(a,b,"concatenated")
+	return VectorGridData(copy(a.U),copy(b.U),a.grid);
+end
+
+
+
 #################################################################
 #  Wrappers to accomplish Matrix{Point2} <---> VectorGridData   #
 #################################################################
@@ -170,6 +178,17 @@ function AddAt!(v::VectorGridData,i::Integer,j::Integer,f::StaticArrays.SVector{
 	v.U[i,j] += f[1];
 	v.V[i,j] += f[2];
 	return v
+end
+
+# Helper function to return one component of a vector field as a scalar field
+function Component(v::VectorGridData,k::Integer)
+	if k == 1
+		return ScalarGridData(copy(v.U),v.grid);
+	elseif k == 2
+		return ScalarGridData(copy(v.V),v.grid);
+	else
+		throw(ArgumentError("Vector grid data has components 1 and 2, got $k."));
+	end
 end
 
 ###############################################
@@ -206,6 +225,9 @@ end
 function Base.:*(a::ScalarGridData,c::Real)
 	return c*a;
 end
+function Base.:/(a::ScalarGridData,c::Real) 
+	return ScalarGridData(a.U./c,a.grid);
+end
 
 #Scalar operations on vector fields
 function Base.:-(a::VectorGridData)
@@ -217,11 +239,18 @@ end
 function Base.:*(a::VectorGridData,c::Real) 
 	return c*a;
 end
+function  Base.:/(a::VectorGridData,c::Real)
+	return VectorGridData(a.U./c,a.V./c,a.grid);
+end
 
 #Pointwise mult of scalar/vector fields
 function Base.:*(a::ScalarGridData,b::ScalarGridData)
 	CheckSameGrid(a,b,"multiplied")
 	return ScalarGridData(a.U.*b.U,a.grid);
+end
+function Base.:/(a::ScalarGridData,b::ScalarGridData)
+	CheckSameGrid(a,b,"divided")
+	return ScalarGridData(a.U./b.U,a.grid);
 end
 function Base.:*(a::ScalarGridData,b::VectorGridData) 
 	CheckSameGrid(a,b,"multiplied")

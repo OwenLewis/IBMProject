@@ -21,6 +21,7 @@ include("BndOpers.jl")
 export PeriodicEulGrid,
        ScalarGridData,
        VectorGridData,
+       Component,
        GridIntegral
 
 
